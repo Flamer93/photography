@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import {
   SiteFooter,
   SiteHeader,
+  SocialBlock,
   SocialRail,
   ThemeRail,
 } from "@/components/chrome";
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
             <ThemeRail />
             <SocialRail />
             <main>{children}</main>
+            <SocialBlock />
             <SiteFooter />
           </div>
         </Providers>

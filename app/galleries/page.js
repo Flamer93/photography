@@ -63,6 +63,9 @@ export default function GalleriesPage() {
                   {g.dateOf ? ` — ${formatDate(g.dateOf)}` : ""}
                 </p>
                 <h3>{g.title}</h3>
+                {g.description && (
+                  <p className="muted small card-desc">{g.description}</p>
+                )}
                 <p className="muted small" style={{ margin: 0 }}>
                   {g.photoCount || 0} photos
                   {g.defaultPriceCents

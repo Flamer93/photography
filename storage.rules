@@ -20,6 +20,13 @@ service firebase.storage {
                    && request.resource.size < 12 * 1024 * 1024;
     }
 
+    // Gallery cover images. Public, never watermarked, one per gallery.
+    match /covers/{galleryId} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage()
+                   && request.resource.size < 12 * 1024 * 1024;
+    }
+
     // Full-resolution originals. Never readable by buyers: delivery after
     // purchase will be handled by a signed URL issued server-side.
     match /originals/{galleryId}/{photoId} {

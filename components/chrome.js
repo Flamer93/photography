@@ -11,6 +11,24 @@ const NAV = [
   { href: "/about", label: "About" },
 ];
 
+export const SOCIALS = [
+  {
+    label: "Instagram",
+    handle: "@homickflicks",
+    href: "https://instagram.com/homickflicks",
+  },
+  {
+    label: "Snapchat",
+    handle: "noahhomick",
+    href: "https://snapchat.com/add/noahhomick",
+  },
+  {
+    label: "Email",
+    handle: "noah@homick.com",
+    href: "mailto:noah@homick.com",
+  },
+];
+
 export function SiteHeader() {
   const pathname = usePathname();
   const { items } = useCart();
@@ -84,11 +102,45 @@ export function ThemeRail() {
 export function SocialRail() {
   return (
     <div className="social-rail">
-      <a href="https://instagram.com/" target="_blank" rel="noreferrer">
-        Instagram
-      </a>
-      <a href="mailto:noah@homick.com">Email</a>
+      {SOCIALS.filter((s) => s.label !== "Email").map((s) => (
+        <a key={s.label} href={s.href} target="_blank" rel="noreferrer">
+          {s.label}
+        </a>
+      ))}
     </div>
+  );
+}
+
+// The big follow block that sits above the footer on buyer-facing pages.
+export function SocialBlock() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
+
+  return (
+    <section className="section social-block">
+      <div className="wrap">
+        <p className="eyebrow">Follow along</p>
+        <h2>Game day, every week.</h2>
+        <p className="lede">
+          Shots go up here first, then to socials. Message me on either if you
+          want your game covered.
+        </p>
+        <div className="social-cards">
+          {SOCIALS.map((s) => (
+            <a
+              key={s.label}
+              className="social-card"
+              href={s.href}
+              target={s.href.startsWith("mailto:") ? undefined : "_blank"}
+              rel="noreferrer"
+            >
+              <span className="eyebrow">{s.label}</span>
+              <span className="social-handle">{s.handle}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -102,7 +154,16 @@ export function SiteFooter() {
       <div className="footer-links">
         <Link href="/galleries">Galleries</Link>
         <Link href="/about">About</Link>
-        <a href="mailto:noah@homick.com">noah@homick.com</a>
+        {SOCIALS.map((s) => (
+          <a
+            key={s.label}
+            href={s.href}
+            target={s.href.startsWith("mailto:") ? undefined : "_blank"}
+            rel="noreferrer"
+          >
+            {s.handle}
+          </a>
+        ))}
       </div>
       <p className="muted small">
         © {new Date().getFullYear()} Noah Homick. All images protected by

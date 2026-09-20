@@ -115,6 +115,7 @@ function GalleriesTab() {
   const [sport, setSport] = useState("Hockey");
   const [dateOf, setDateOf] = useState("");
   const [venue, setVenue] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("15");
   const [busy, setBusy] = useState(false);
 
@@ -148,13 +149,17 @@ function GalleriesTab() {
         slug: slugify(title),
         sport,
         venue: venue.trim(),
+        description: description.trim(),
         dateOf: dateOf ? new Date(dateOf) : new Date(),
         defaultPriceCents: cents,
         published: false,
+        watermark: true,
+        lowRes: true,
       });
       setTitle("");
       setVenue("");
       setDateOf("");
+      setDescription("");
       await refresh();
       setError("");
     } catch (e) {
@@ -300,6 +305,17 @@ function GalleriesTab() {
             placeholder="North Simcoe Sports Complex"
             value={venue}
             onChange={(e) => setVenue(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="description">Description</label>
+          <textarea
+            id="description"
+            rows={3}
+            maxLength={600}
+            placeholder="What happened in this game?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
         <div className="field">

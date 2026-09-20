@@ -106,6 +106,9 @@ export default function GalleryPage() {
             {gallery.dateOf ? ` — ${formatDate(gallery.dateOf)}` : ""}
           </p>
           <h1>{gallery.title}</h1>
+          {gallery.description && (
+            <p className="lede">{gallery.description}</p>
+          )}
           <div className="hero-meta">
             {gallery.venue && <span>{gallery.venue}</span>}
             <span>{photos.length} photos</span>

@@ -42,16 +42,25 @@ deployed values.
 ## Data model
 
 ```
-galleries/{id}                 title, slug, sport, dateOf, venue,
-                               published, defaultPriceCents, coverUrl, photoCount
+galleries/{id}                 title, slug, sport, dateOf, venue, description,
+                               published, defaultPriceCents, coverUrl, photoCount,
+                               watermark, lowRes
 galleries/{id}/photos/{id}     previewUrl, previewPath, originalPath,
-                               width, height, priceCents, filename
+                               width, height, priceCents, filename,
+                               watermarked, lowRes
 orders/{id}                    buyerUid, buyerEmail, buyerName, buyerPhone,
                                note, items[], subtotalCents, status, createdAt
 ```
 
-Storage: `previews/{galleryId}/{photoId}` is world-readable,
-`originals/{galleryId}/{photoId}` is admin-only.
+Storage: `previews/{galleryId}/{photoId}` and `covers/{galleryId}` are
+world-readable, `originals/{galleryId}/{photoId}` is admin-only.
+
+### Preview settings
+
+Each gallery carries `watermark` and `lowRes` flags, toggled on the admin
+gallery page. They are read when a photo is uploaded, because that is when the
+preview is generated -- changing a flag does not rewrite previews that already
+exist. Each photo records the settings it was made with.
 
 ## Admin access
 
