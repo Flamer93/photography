@@ -48,3 +48,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Gates the admin UI only. The real enforcement is the matching UID hardcoded
+  # in firestore.rules and storage.rules.
+  - variable: NEXT_PUBLIC_ADMIN_UID
+    value: OcjWZ7eZMkQf5tRdCFiBB7OvIoR2
+    availability:
+      - BUILD
+      - RUNTIME

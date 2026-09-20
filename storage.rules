@@ -3,17 +3,31 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Each signed-in user can write only inside their own folder.
-    match /uploads/{userId}/{fileName} {
-      allow read: if request.auth != null;
-
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.uid == 'OcjWZ7eZMkQf5tRdCFiBB7OvIoR2';
     }
 
-    // Deny everything else by default.
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Watermarked, downscaled derivatives. Public so galleries load without a
+    // sign-in -- this is the only version a buyer ever sees.
+    match /previews/{galleryId}/{photoId} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage()
+                   && request.resource.size < 12 * 1024 * 1024;
+    }
+
+    // Full-resolution originals. Never readable by buyers: delivery after
+    // purchase will be handled by a signed URL issued server-side.
+    match /originals/{galleryId}/{photoId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isImage()
+                   && request.resource.size < 60 * 1024 * 1024;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

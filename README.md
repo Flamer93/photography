@@ -1,48 +1,86 @@
-# Photography — Firebase hello world
+# Noah Homick — Sports Photography
 
-Next.js (App Router) running on **Firebase App Hosting**, wired to
-**Authentication** (Google + email/password), **Cloud Firestore** and
-**Cloud Storage**.
+Game-day photo galleries with a cart and checkout, built on Next.js and
+Firebase App Hosting.
+
+Live: https://photography-web--photography-c16ff.us-central1.hosted.app
+
+## How it works
+
+**Buyers** browse published game galleries, open photos in a lightbox, add the
+ones they want to a cart, sign in, and place an order. Previews are downscaled
+and watermarked; the full-resolution originals are never served to them.
+
+**The admin** (a single Firebase account) creates galleries, uploads photos,
+sets prices per photo or per gallery, publishes galleries, and sees revenue and
+orders on a dashboard.
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in the values
 npm run dev
 ```
 
-Open http://localhost:3000.
-
-Fill `.env.local` from:
-
-```bash
-firebase apps:sdkconfig WEB
-```
+`.env.local` holds the Firebase web config and `NEXT_PUBLIC_ADMIN_UID`. It is
+gitignored — see `.env.example` for the shape, and `apphosting.yaml` for the
+deployed values.
 
 ## Layout
 
-| Path                    | What it is                                              |
-| ----------------------- | ------------------------------------------------------- |
-| `app/page.js`           | The hello-world page: auth, Firestore, Storage demos     |
-| `lib/firebase.js`       | Client SDK initialization                                |
-| `apphosting.yaml`       | App Hosting runtime + build env vars                     |
-| `firestore.rules`       | Firestore security rules                                 |
-| `storage.rules`         | Storage security rules                                   |
-| `firebase.json`         | Tells the CLI where the rules files live                 |
+| Path                             | What it is                                      |
+| -------------------------------- | ----------------------------------------------- |
+| `app/page.js`                    | Home — hero, recent galleries, how it works      |
+| `app/galleries/`                 | Gallery index and individual game galleries      |
+| `app/cart/`                      | Cart, sign-in gate, checkout                     |
+| `app/admin/`                     | Dashboard: galleries, orders, revenue            |
+| `app/admin/galleries/[id]/`      | Upload photos, set prices, publish               |
+| `components/providers.js`        | Theme, auth and cart context                     |
+| `lib/images.js`                  | Browser-side downscale + watermark               |
+| `lib/db.js`                      | Firestore reads and writes                       |
+
+## Data model
+
+```
+galleries/{id}                 title, slug, sport, dateOf, venue,
+                               published, defaultPriceCents, coverUrl, photoCount
+galleries/{id}/photos/{id}     previewUrl, previewPath, originalPath,
+                               width, height, priceCents, filename
+orders/{id}                    buyerUid, buyerEmail, buyerName, buyerPhone,
+                               note, items[], subtotalCents, status, createdAt
+```
+
+Storage: `previews/{galleryId}/{photoId}` is world-readable,
+`originals/{galleryId}/{photoId}` is admin-only.
+
+## Admin access
+
+There is one admin, identified by UID. That UID appears in three places and
+must match in all of them:
+
+- `NEXT_PUBLIC_ADMIN_UID` in `.env.local` (local) and `apphosting.yaml` (deployed)
+- `firestore.rules`
+- `storage.rules`
+
+The env var only hides UI. The rules are what actually enforce access.
 
 ## Deploying
 
-App Hosting builds from GitHub: push to the connected branch and a rollout
-starts automatically.
+Pushing to `main` triggers an App Hosting rollout. Security rules and indexes
+deploy separately:
 
 ```bash
-git push
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-Security rules are *not* part of that rollout — deploy them separately when
-they change:
+## Known limitations
 
-```bash
-firebase deploy --only firestore:rules,storage
-```
+- **Payments are not wired up.** Orders are created with status `pending`; the
+  admin marks them paid by hand. Stripe Checkout is the intended next step.
+- **Order totals are client-supplied.** A determined buyer could post an order
+  with a wrong price. It is visible to the admin before anything is delivered,
+  and the fix lands with payments: create the checkout session server-side from
+  the prices in Firestore.
+- **Purchased downloads are not automated.** Originals stay admin-only; files
+  are sent manually. Automating this means a server route that verifies a paid
+  order and issues a signed URL.

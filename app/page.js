@@ -1,261 +1,133 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-} from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { listPublishedGalleries } from "@/lib/db";
 
-export default function Home() {
-  const [user, setUser] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
-
-  useEffect(() => onAuthStateChanged(auth, (u) => {
-    setUser(u);
-    setAuthReady(true);
-  }), []);
-
-  return (
-    <main>
-      <h1>Hello, world.</h1>
-      <p className="lede">
-        Next.js on Firebase App Hosting, wired up to Authentication, Cloud
-        Firestore and Cloud Storage.
-      </p>
-
-      <AuthCard user={user} authReady={authReady} />
-      {user && <MessagesCard user={user} />}
-      {user && <UploadCard user={user} />}
-    </main>
-  );
-}
-
-function AuthCard({ user, authReady }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function run(fn) {
-    setError("");
-    setBusy(true);
-    try {
-      await fn();
-      setPassword("");
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!authReady) {
-    return (
-      <section className="card">
-        <h2>Authentication</h2>
-        <p className="empty">Checking sign-in status…</p>
-      </section>
-    );
-  }
-
-  if (user) {
-    return (
-      <section className="card">
-        <h2>Authentication</h2>
-        <p>
-          Signed in as <strong>{user.email || user.displayName || user.uid}</strong>
-          <span className="meta">uid: {user.uid}</span>
-        </p>
-        <div className="row">
-          <button className="secondary" onClick={() => signOut(auth)}>
-            Sign out
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="card">
-      <h2>Authentication</h2>
-      <div className="row">
-        <button
-          disabled={busy}
-          onClick={() => run(() => signInWithPopup(auth, new GoogleAuthProvider()))}
-        >
-          Continue with Google
-        </button>
-      </div>
-
-      <form
-        style={{ marginTop: 16 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          run(() => signInWithEmailAndPassword(auth, email, password));
-        }}
-      >
-        <input
-          type="email"
-          placeholder="you@example.com"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={busy}>
-          Sign in
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          disabled={busy}
-          onClick={() => run(() => createUserWithEmailAndPassword(auth, email, password))}
-        >
-          Create account
-        </button>
-      </form>
-
-      {error && <p className="status error">{error}</p>}
-    </section>
-  );
-}
-
-function MessagesCard({ user }) {
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const [error, setError] = useState("");
+export default function HomePage() {
+  const [galleries, setGalleries] = useState([]);
+  const [state, setState] = useState("loading");
 
   useEffect(() => {
-    const q = query(
-      collection(db, "messages"),
-      orderBy("createdAt", "desc"),
-      limit(10)
-    );
-    return onSnapshot(
-      q,
-      (snap) => setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      (e) => setError(e.message)
-    );
+    listPublishedGalleries(6)
+      .then((rows) => {
+        setGalleries(rows);
+        setState("ready");
+      })
+      .catch(() => setState("error"));
   }, []);
 
-  async function submit(e) {
-    e.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    setError("");
-    try {
-      await addDoc(collection(db, "messages"), {
-        text: trimmed,
-        uid: user.uid,
-        author: user.email || user.displayName || "anonymous",
-        createdAt: serverTimestamp(),
-      });
-      setText("");
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-
   return (
-    <section className="card">
-      <h2>Cloud Firestore</h2>
-      <form onSubmit={submit}>
-        <input
-          type="text"
-          placeholder="Write something…"
-          maxLength={480}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <button type="submit">Save</button>
-      </form>
-
-      {error && <p className="status error">{error}</p>}
-
-      {messages.length === 0 ? (
-        <p className="empty">No messages yet — add the first one.</p>
-      ) : (
-        <ul>
-          {messages.map((m) => (
-            <li key={m.id}>
-              {m.text}
-              <span className="meta">
-                {m.author} ·{" "}
-                {m.createdAt?.toDate
-                  ? m.createdAt.toDate().toLocaleString()
-                  : "saving…"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function UploadCard({ user }) {
-  const [url, setUrl] = useState("");
-  const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
-
-  async function upload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setError("");
-    setUrl("");
-    setStatus(`Uploading ${file.name}…`);
-    try {
-      const path = `uploads/${user.uid}/${Date.now()}-${file.name}`;
-      const snap = await uploadBytes(ref(storage, path), file);
-      setUrl(await getDownloadURL(snap.ref));
-      setStatus("Uploaded.");
-    } catch (e) {
-      setStatus("");
-      setError(e.message);
-    } finally {
-      e.target.value = "";
-    }
-  }
-
-  return (
-    <section className="card">
-      <h2>Cloud Storage</h2>
-      <input type="file" accept="image/*" onChange={upload} />
-      {status && <p className="status ok">{status}</p>}
-      {error && <p className="status error">{error}</p>}
-      {url && (
-        <>
-          <img className="preview" src={url} alt="Uploaded preview" />
-          <p className="status">
-            <a href={url} target="_blank" rel="noreferrer">
-              Open in a new tab
-            </a>
+    <>
+      <section className="hero">
+        <div className="wrap hero-inner">
+          <p className="eyebrow">Midland, Ontario — Sports Photography</p>
+          <h1>
+            The moment
+            <br />
+            after the whistle.
+          </h1>
+          <p className="lede">
+            I shoot local games across Simcoe County and put every frame online
+            the same week. Find your game, find your shot, and take it home.
           </p>
-        </>
-      )}
-    </section>
+          <div className="hero-meta">
+            <span>Hockey</span>
+            <span>Soccer</span>
+            <span>Football</span>
+            <span>Basketball</span>
+          </div>
+          <div>
+            <Link href="/galleries" className="btn accent">
+              Find your game
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="wrap">
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Latest</p>
+              <h2>Recent work</h2>
+            </div>
+            <Link href="/galleries" className="btn ghost small">
+              All galleries
+            </Link>
+          </div>
+
+          {state === "loading" && <p className="muted">Loading galleries…</p>}
+
+          {state === "error" && (
+            <div className="notice error">
+              Couldn’t load galleries right now. Refresh to try again.
+            </div>
+          )}
+
+          {state === "ready" && galleries.length === 0 && (
+            <div className="empty-state">
+              <p>No galleries published yet — the first game goes up soon.</p>
+            </div>
+          )}
+
+          {galleries.length > 0 && (
+            <div className="masonry">
+              {galleries.map((g) => (
+                <Link
+                  key={g.id}
+                  href={`/galleries/${g.slug}`}
+                  className="photo-card"
+                >
+                  {g.coverUrl ? (
+                    <img src={g.coverUrl} alt={g.title} loading="lazy" />
+                  ) : (
+                    <div className="gallery-cover-empty">No cover yet</div>
+                  )}
+                  <div className="photo-overlay">
+                    <span>{g.title}</span>
+                    <span className="photo-price">{g.photoCount || 0} shots</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="section" style={{ background: "var(--surface)" }}>
+        <div className="wrap">
+          <p className="eyebrow">How it works</p>
+          <h2>Three steps</h2>
+          <div className="grid-3" style={{ marginTop: 40 }}>
+            {[
+              {
+                n: "01",
+                t: "Find your game",
+                d: "Every game I shoot gets its own gallery, sorted by date. No password, no sign-up to browse.",
+              },
+              {
+                n: "02",
+                t: "Pick your shots",
+                d: "Previews are watermarked. Add the ones you want to your cart — each photo is priced on the gallery.",
+              },
+              {
+                n: "03",
+                t: "Check out",
+                d: "Place your order and I’ll send the clean, full-resolution files. No watermark, yours to print and post.",
+              },
+            ].map((step) => (
+              <div key={step.n} className="panel">
+                <p className="eyebrow">{step.n}</p>
+                <h3>{step.t}</h3>
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  {step.d}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

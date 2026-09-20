@@ -1,0 +1,113 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { useAuth, useCart, useTheme } from "@/components/providers";
+
+const NAV = [
+  { href: "/", label: "Home" },
+  { href: "/galleries", label: "Galleries" },
+  { href: "/about", label: "About" },
+];
+
+export function SiteHeader() {
+  const pathname = usePathname();
+  const { items } = useCart();
+  const { isAdmin } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  const isActive = (href) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  return (
+    <header className="site-header">
+      <Link href="/" className="monogram" aria-label="Noah Homick — home">
+        NH
+      </Link>
+
+      <nav className={`site-nav ${open ? "is-open" : ""}`}>
+        {NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={isActive(item.href) ? "is-active" : ""}
+            onClick={() => setOpen(false)}
+          >
+            {item.label}
+          </Link>
+        ))}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={isActive("/admin") ? "is-active" : ""}
+            onClick={() => setOpen(false)}
+          >
+            Admin
+          </Link>
+        )}
+      </nav>
+
+      <div className="header-actions">
+        <Link href="/cart" className="cart-button" aria-label="Cart">
+          Cart
+          {items.length > 0 && <span className="cart-count">{items.length}</span>}
+        </Link>
+        <button
+          className="nav-toggle"
+          aria-label="Toggle menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span />
+          <span />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+export function ThemeRail() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      className="theme-rail"
+      onClick={toggle}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+    >
+      <span className={theme === "light" ? "is-on" : ""}>Light</span>
+      <span className={theme === "dark" ? "is-on" : ""}>Dark</span>
+    </button>
+  );
+}
+
+export function SocialRail() {
+  return (
+    <div className="social-rail">
+      <a href="https://instagram.com/" target="_blank" rel="noreferrer">
+        Instagram
+      </a>
+      <a href="mailto:noah@homick.com">Email</a>
+    </div>
+  );
+}
+
+export function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <div>
+        <p className="footer-mark">Noah Homick</p>
+        <p className="muted">Sports photography — Midland, Ontario</p>
+      </div>
+      <div className="footer-links">
+        <Link href="/galleries">Galleries</Link>
+        <Link href="/about">About</Link>
+        <a href="mailto:noah@homick.com">noah@homick.com</a>
+      </div>
+      <p className="muted small">
+        © {new Date().getFullYear()} Noah Homick. All images protected by
+        copyright.
+      </p>
+    </footer>
+  );
+}
