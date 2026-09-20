@@ -1,0 +1,180 @@
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --border: #e4e0d9;
+  --text: #1c1a17;
+  --muted: #6f6a62;
+  --accent: #b4551f;
+  --accent-text: #ffffff;
+  --danger: #a3271b;
+  --ok: #2c6e49;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171513;
+    --surface: #211e1b;
+    --border: #34302b;
+    --text: #f2efea;
+    --muted: #a49d93;
+    --accent: #e0793d;
+    --accent-text: #1c1a17;
+    --danger: #e2796b;
+    --ok: #7bc49a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 16px 96px;
+}
+
+h1 {
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+h2 {
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.lede {
+  color: var(--muted);
+  margin: 0 0 32px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+button {
+  font: inherit;
+  font-weight: 550;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  font: inherit;
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+input[type="file"] {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted);
+  max-width: 100%;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+ul {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+li {
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.meta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.status {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 16px 0 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+img.preview {
+  margin-top: 12px;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}

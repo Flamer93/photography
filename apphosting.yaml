@@ -1,0 +1,50 @@
+# Firebase App Hosting configuration.
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+# NEXT_PUBLIC_* values must exist at BUILD time (Next.js inlines them into the
+# client bundle) as well as at RUNTIME. They are public by design -- see
+# .env.example. Anything genuinely secret belongs in Secret Manager, referenced
+# here with `secret:` instead of `value:`.
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyC4IuC-Azfn7XIOlo8Ph-9r-yO4Le2XNd8
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: photography-c16ff.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: photography-c16ff
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: photography-c16ff.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "157331071323"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:157331071323:web:4e28b33e1ce9cc48fdba7e
+    availability:
+      - BUILD
+      - RUNTIME
