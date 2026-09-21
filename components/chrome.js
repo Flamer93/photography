@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/format";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/galleries", label: "Galleries" },
+  { href: "/teams", label: "For Teams" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -155,6 +156,7 @@ export function SiteFooter() {
       </div>
       <div className="footer-links">
         <Link href="/galleries">Galleries</Link>
+        <Link href="/teams">For Teams</Link>
         <Link href="/contact">Contact</Link>
         {SOCIALS.map((s) => (
           <a

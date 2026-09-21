@@ -107,22 +107,10 @@ ${team ? `Team: ${escapeHtml(team)}<br>` : ""}
     });
 
     if (!res.ok) {
-      const raw = await res.text();
-      console.error("Resend rejected the message:", res.status, raw);
-
-      // Surface Resend's own reason. It describes this site's mail
-      // configuration, not anything a sender submitted, and without it a
-      // misconfiguration is invisible outside the server log.
-      let detail = raw.slice(0, 300);
-      try {
-        const parsed = JSON.parse(raw);
-        detail = parsed.message || parsed.name || detail;
-      } catch {}
-
-      return Response.json(
-        { ok: false, emailed: false, status: res.status, detail },
-        { status: 502 }
-      );
+      // Logged, not returned: the reason describes this site's mail setup and
+      // belongs in the server log rather than in a public response.
+      console.error("Resend rejected the message:", res.status, await res.text());
+      return Response.json({ ok: false, emailed: false }, { status: 502 });
     }
 
     return Response.json({ ok: true, emailed: true });
@@ -132,15 +120,3 @@ ${team ? `Team: ${escapeHtml(team)}<br>` : ""}
   }
 }
 
-// Diagnostic probe: confirms which build is serving and whether a key reached
-// the runtime, without sending anything or revealing the key.
-export async function GET() {
-  const key = (process.env.RESEND_API_KEY || "").trim();
-  return Response.json({
-    ok: true,
-    build: "secret-v4",
-    keyPresent: key.length > 0,
-    keyLength: key.length,
-    keyPrefix: key.slice(0, 3),
-  });
-}

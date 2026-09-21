@@ -95,6 +95,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section team-teaser">
+        <div className="wrap">
+          <div className="team-cta">
+            <div>
+              <p className="eyebrow" style={{ marginBottom: 8 }}>
+                For teams
+              </p>
+              <h3 style={{ marginBottom: 8 }}>Want your whole team covered?</h3>
+              <p className="muted" style={{ margin: 0 }}>
+                Warmups, action, celebrations, goalies and team photos — see
+                what a booking includes.
+              </p>
+            </div>
+            <Link href="/teams" className="btn accent">
+              Book your team
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="section" style={{ background: "var(--surface)" }}>
         <div className="wrap">
           <p className="eyebrow">How it works</p>
