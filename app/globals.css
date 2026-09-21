@@ -1352,3 +1352,190 @@ body::after {
   border-radius: 14px;
   background: var(--surface-2);
 }
+
+/* ============================================================ checkout === */
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  gap: 48px;
+  align-items: start;
+}
+
+.checkout-step {
+  margin-bottom: 40px;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.step-num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.85rem;
+}
+
+.delivery-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* ------------------------------------------------------ payment methods -- */
+
+.pay-methods {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.pay-method {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+
+.pay-method:hover:not(.is-disabled) {
+  border-color: var(--text);
+}
+
+.pay-method.is-on {
+  border-color: var(--accent);
+}
+
+.pay-method.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pay-method input {
+  width: auto;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.pay-method > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.soon-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+/* The card panel is shown to preview the finished flow. Its inputs are
+   disabled -- see the note in app/checkout/page.js. */
+.card-panel {
+  position: relative;
+  padding: 22px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.card-panel .field label {
+  color: var(--muted);
+}
+
+.card-panel input {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.card-panel-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(1.5px);
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------- summary -- */
+
+.order-summary {
+  position: sticky;
+  top: 88px;
+}
+
+.summary-items {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.summary-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.summary-item img,
+.summary-thumb-empty {
+  width: 48px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--surface);
+}
+
+.receipt-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.receipt-row.is-total {
+  margin-bottom: 8px;
+  padding-top: 14px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+}
+
+@media (max-width: 980px) {
+  .checkout-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .order-summary {
+    position: static;
+  }
+}
