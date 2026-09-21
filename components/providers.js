@@ -13,49 +13,6 @@ import { auth } from "@/lib/firebase";
 
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || "";
 
-/* ---------------------------------------------------------------- theme --- */
-
-const ThemeContext = createContext({ theme: "dark", toggle: () => {} });
-export const useTheme = () => useContext(ThemeContext);
-
-function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState("dark");
-
-  useEffect(() => {
-    let stored = null;
-    try {
-      stored = localStorage.getItem("nh-theme");
-    } catch {
-      // Private windows and blocked site data both throw here; fall through to
-      // the system preference.
-    }
-    const initial =
-      stored ||
-      (window.matchMedia("(prefers-color-scheme: light)").matches
-        ? "light"
-        : "dark");
-    setTheme(initial);
-    document.documentElement.dataset.theme = initial;
-  }, []);
-
-  const toggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      try {
-        localStorage.setItem("nh-theme", next);
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}
-
 /* ----------------------------------------------------------------- auth --- */
 
 const AuthContext = createContext({ user: null, ready: false, isAdmin: false });
@@ -146,10 +103,8 @@ function CartProvider({ children }) {
 
 export function Providers({ children }) {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <CartProvider>{children}</CartProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <CartProvider>{children}</CartProvider>
+    </AuthProvider>
   );
 }

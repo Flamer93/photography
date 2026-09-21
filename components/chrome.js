@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useAuth, useCart, useTheme } from "@/components/providers";
+import { useAuth, useCart } from "@/components/providers";
 import { formatPrice } from "@/lib/format";
 
 const NAV = [
@@ -20,8 +20,8 @@ export const SOCIALS = [
   },
   {
     label: "Snapchat",
-    handle: "noahhomick",
-    href: "https://snapchat.com/add/noahhomick",
+    handle: "noah_homick",
+    href: "https://snapchat.com/add/noah_homick",
   },
   {
     label: "Email",
@@ -42,8 +42,6 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <Link href="/" className="brand" aria-label="Homick Flicks — home">
-        {/* The mark is white-on-black artwork, so its plate stays dark in both
-            themes rather than inverting with the palette. */}
         <img src="/logo-mark.png" alt="Homick Flicks" />
       </Link>
 
@@ -100,20 +98,6 @@ export function SiteHeader() {
         </button>
       </div>
     </header>
-  );
-}
-
-export function ThemeRail() {
-  const { theme, toggle } = useTheme();
-  return (
-    <button
-      className="theme-rail"
-      onClick={toggle}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-    >
-      <span className={theme === "light" ? "is-on" : ""}>Light</span>
-      <span className={theme === "dark" ? "is-on" : ""}>Dark</span>
-    </button>
   );
 }
 

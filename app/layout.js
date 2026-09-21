@@ -6,7 +6,6 @@ import {
   SiteHeader,
   SocialBlock,
   SocialRail,
-  ThemeRail,
 } from "@/components/chrome";
 
 const display = Archivo_Black({
@@ -33,12 +32,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en">
       <body className={`${display.variable} ${body.variable}`}>
         <Providers>
           <div className="shell">
             <SiteHeader />
-            <ThemeRail />
             <SocialRail />
             <main>{children}</main>
             <SocialBlock />
