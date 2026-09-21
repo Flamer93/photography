@@ -104,10 +104,20 @@ ${team ? `Team: ${escapeHtml(team)}<br>` : ""}
     });
 
     if (!res.ok) {
-      const detail = await res.text();
-      console.error("Resend rejected the message:", res.status, detail);
+      const raw = await res.text();
+      console.error("Resend rejected the message:", res.status, raw);
+
+      // Surface Resend's own reason. It describes this site's mail
+      // configuration, not anything a sender submitted, and without it a
+      // misconfiguration is invisible outside the server log.
+      let detail = raw.slice(0, 300);
+      try {
+        const parsed = JSON.parse(raw);
+        detail = parsed.message || parsed.name || detail;
+      } catch {}
+
       return Response.json(
-        { ok: false, emailed: false, status: res.status },
+        { ok: false, emailed: false, status: res.status, detail },
         { status: 502 }
       );
     }
