@@ -1539,3 +1539,20 @@ body::after {
     position: static;
   }
 }
+
+/* ============================================================= sign out == */
+
+/* Only rendered for a signed-in visitor, so it never offers to sign out
+   someone who is not signed in. */
+.signout-strip {
+  border-top: 1px solid var(--line);
+  padding: 22px 0;
+}
+
+.signout-strip .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}

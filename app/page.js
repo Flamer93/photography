@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useAuth } from "@/components/providers";
 import { listPublishedGalleries } from "@/lib/db";
 
 export default function HomePage() {
+  const { user, ready } = useAuth();
   const [galleries, setGalleries] = useState([]);
   const [state, setState] = useState("loading");
 
@@ -148,6 +152,19 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {ready && user && (
+        <section className="signout-strip">
+          <div className="wrap">
+            <p className="muted small" style={{ margin: 0 }}>
+              Signed in as <strong>{user.email || user.uid}</strong>
+            </p>
+            <button className="btn ghost small" onClick={() => signOut(auth)}>
+              Sign out
+            </button>
+          </div>
+        </section>
+      )}
     </>
   );
 }
