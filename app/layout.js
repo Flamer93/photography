@@ -24,8 +24,8 @@ const body = Inter({
 
 export const metadata = {
   title: {
-    default: "Noah Homick — Sports Photography",
-    template: "%s — Noah Homick",
+    default: "Homick Flicks — Sports Photography",
+    template: "%s — Homick Flicks",
   },
   description:
     "Game-day sports photography in Midland, Ontario. Browse your game gallery and take home the shot.",

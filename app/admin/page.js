@@ -1,20 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/components/providers";
 import { SignIn } from "@/components/signin";
+import { TagInput } from "@/components/taginput";
 import {
   createGallery,
+  deleteEnquiry,
   deleteGallery,
   listAllGalleries,
   listAllOrders,
+  listEnquiries,
+  setEnquiryHandled,
   setOrderStatus,
   updateGallery,
 } from "@/lib/db";
-import { formatDate, formatPrice, parsePriceToCents, slugify } from "@/lib/format";
+import {
+  formatDate,
+  formatPrice,
+  parsePriceToCents,
+  slugify,
+} from "@/lib/format";
 
 export default function AdminPage() {
   const { user, ready, isAdmin } = useAuth();
@@ -94,11 +103,19 @@ export default function AdminPage() {
             className={tab === "orders" ? "is-active" : ""}
             onClick={() => setTab("orders")}
           >
-            Orders & revenue
+            Orders &amp; revenue
+          </button>
+          <button
+            className={tab === "messages" ? "is-active" : ""}
+            onClick={() => setTab("messages")}
+          >
+            Messages
           </button>
         </div>
 
-        {tab === "galleries" ? <GalleriesTab /> : <OrdersTab />}
+        {tab === "galleries" && <GalleriesTab />}
+        {tab === "orders" && <OrdersTab />}
+        {tab === "messages" && <MessagesTab />}
       </div>
     </section>
   );
@@ -116,6 +133,7 @@ function GalleriesTab() {
   const [dateOf, setDateOf] = useState("");
   const [venue, setVenue] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState([]);
   const [price, setPrice] = useState("15");
   const [busy, setBusy] = useState(false);
 
@@ -135,6 +153,13 @@ function GalleriesTab() {
     refresh();
   }, [refresh]);
 
+  // Offer every team already tagged anywhere, so spelling stays consistent.
+  const knownTags = useMemo(() => {
+    const set = new Set();
+    galleries.forEach((g) => (g.tags || []).forEach((t) => set.add(t)));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [galleries]);
+
   async function submit(e) {
     e.preventDefault();
     const cents = parsePriceToCents(price);
@@ -150,6 +175,7 @@ function GalleriesTab() {
         sport,
         venue: venue.trim(),
         description: description.trim(),
+        tags,
         dateOf: dateOf ? new Date(dateOf) : new Date(),
         defaultPriceCents: cents,
         published: false,
@@ -160,6 +186,7 @@ function GalleriesTab() {
       setVenue("");
       setDateOf("");
       setDescription("");
+      setTags([]);
       await refresh();
       setError("");
     } catch (e) {
@@ -194,15 +221,7 @@ function GalleriesTab() {
   }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 340px)",
-        gap: 40,
-        alignItems: "start",
-      }}
-      className="admin-layout"
-    >
+    <div className="admin-layout">
       <div>
         <h3 style={{ marginBottom: 18 }}>All galleries</h3>
         {loading ? (
@@ -216,6 +235,7 @@ function GalleriesTab() {
             <thead>
               <tr>
                 <th>Game</th>
+                <th>Teams</th>
                 <th>Date</th>
                 <th>Photos</th>
                 <th>Status</th>
@@ -234,6 +254,19 @@ function GalleriesTab() {
                       {g.sport}
                       {g.venue ? ` — ${g.venue}` : ""}
                     </span>
+                  </td>
+                  <td>
+                    {(g.tags || []).length === 0 ? (
+                      <span className="muted small">—</span>
+                    ) : (
+                      <span className="tag-list">
+                        {(g.tags || []).map((t) => (
+                          <span key={t} className="tag">
+                            {t}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </td>
                   <td className="muted small">{formatDate(g.dateOf)}</td>
                   <td>{g.photoCount || 0}</td>
@@ -288,6 +321,13 @@ function GalleriesTab() {
               <option key={s}>{s}</option>
             ))}
           </select>
+        </div>
+        <div className="field">
+          <label htmlFor="tags">Teams</label>
+          <TagInput tags={tags} onChange={setTags} suggestions={knownTags} />
+          <span className="muted small">
+            Enter or comma to add. Buyers filter galleries by these.
+          </span>
         </div>
         <div className="field">
           <label htmlFor="dateOf">Game date</label>
@@ -465,13 +505,151 @@ function OrdersTab() {
                       Mark unpaid
                     </button>
                   ) : (
-                    <button
-                      className="btn small"
-                      onClick={() => mark(o, "paid")}
-                    >
+                    <button className="btn small" onClick={() => mark(o, "paid")}>
                       Mark paid
                     </button>
                   )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {error && (
+        <div className="notice error" style={{ marginTop: 18 }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- messages -- */
+
+function MessagesTab() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setRows(await listEnquiries());
+      setError("");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  async function toggle(row) {
+    try {
+      await setEnquiryHandled(row.id, !row.handled);
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function remove(row) {
+    if (!window.confirm(`Delete the message from ${row.name || "this sender"}?`))
+      return;
+    try {
+      await deleteEnquiry(row.id);
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  const open = rows.filter((r) => !r.handled).length;
+
+  return (
+    <div>
+      <div className="stat-row">
+        <div className="stat">
+          <p className="eyebrow">Needs a reply</p>
+          <p className="stat-value">{open}</p>
+        </div>
+        <div className="stat">
+          <p className="eyebrow">Total messages</p>
+          <p className="stat-value">{rows.length}</p>
+        </div>
+      </div>
+
+      <h3 style={{ marginBottom: 18 }}>From the contact page</h3>
+
+      {loading ? (
+        <p className="muted">Loading…</p>
+      ) : rows.length === 0 ? (
+        <div className="empty-state">
+          <p>No messages yet.</p>
+        </div>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>About</th>
+              <th>Message</th>
+              <th>Sent</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>
+                  <strong>{r.name || "—"}</strong>
+                  <br />
+                  <a className="muted small" href={`mailto:${r.email}`}>
+                    {r.email}
+                  </a>
+                  {r.phone && (
+                    <>
+                      <br />
+                      <span className="muted small">{r.phone}</span>
+                    </>
+                  )}
+                </td>
+                <td>
+                  <span className="muted small">{r.reason}</span>
+                  {r.team && (
+                    <>
+                      <br />
+                      <span className="tag">{r.team}</span>
+                    </>
+                  )}
+                </td>
+                <td style={{ whiteSpace: "pre-wrap", maxWidth: 420 }}>
+                  {r.message}
+                </td>
+                <td className="muted small">{formatDate(r.createdAt)}</td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  <span className={`tag ${r.handled ? "paid" : "pending"}`}>
+                    {r.handled ? "Replied" : "Open"}
+                  </span>
+                  <br />
+                  <button
+                    className="btn ghost small"
+                    style={{ marginTop: 8 }}
+                    onClick={() => toggle(r)}
+                  >
+                    {r.handled ? "Reopen" : "Mark replied"}
+                  </button>{" "}
+                  <button
+                    className="btn ghost small"
+                    style={{ marginTop: 8 }}
+                    onClick={() => remove(r)}
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

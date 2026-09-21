@@ -12,10 +12,13 @@
   --accent-text: #ffffff;
   --overlay: rgba(255, 255, 255, 0.9);
   --shadow: 0 18px 50px rgba(15, 12, 10, 0.12);
-  --glow-1: rgba(217, 72, 31, 0.1);
-  --glow-2: rgba(35, 80, 140, 0.09);
-  --glow-3: rgba(217, 72, 31, 0.05);
-  --grain: 0.03;
+  --glow-1: rgba(217, 72, 31, 0.2);
+  --glow-2: rgba(30, 70, 130, 0.16);
+  --glow-3: rgba(217, 72, 31, 0.12);
+  --glow-4: rgba(120, 95, 70, 0.1);
+  --rule: rgba(11, 11, 12, 0.05);
+  --vignette: rgba(11, 11, 12, 0.07);
+  --grain: 0.05;
 }
 
 :root[data-theme="dark"] {
@@ -29,10 +32,13 @@
   --accent-text: #120a06;
   --overlay: rgba(11, 11, 12, 0.9);
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --glow-1: rgba(255, 106, 56, 0.13);
-  --glow-2: rgba(56, 110, 190, 0.12);
-  --glow-3: rgba(255, 106, 56, 0.07);
-  --grain: 0.055;
+  --glow-1: rgba(255, 106, 56, 0.17);
+  --glow-2: rgba(56, 110, 190, 0.16);
+  --glow-3: rgba(255, 106, 56, 0.1);
+  --glow-4: rgba(150, 120, 90, 0.08);
+  --rule: rgba(255, 255, 255, 0.035);
+  --vignette: rgba(0, 0, 0, 0.32);
+  --grain: 0.06;
 }
 
 * {
@@ -157,16 +163,21 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
-.monogram {
+.brand {
   display: grid;
   place-items: center;
-  width: 84px;
+  width: 108px;
   height: 64px;
-  background: var(--text);
-  color: var(--bg);
-  font-family: var(--font-display), sans-serif;
-  font-size: 1.3rem;
-  letter-spacing: 0.04em;
+  padding: 9px 12px;
+  /* The artwork is white on black, so the plate stays dark in both themes. */
+  background: #000;
+}
+
+.brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .site-nav {
@@ -824,9 +835,10 @@ input[type="file"] {
     grid-template-columns: auto 1fr;
   }
 
-  .monogram {
-    width: 64px;
+  .brand {
+    width: 84px;
     height: 56px;
+    padding: 7px 9px;
   }
 
   .nav-toggle {
@@ -883,9 +895,18 @@ body::before {
   pointer-events: none;
   background-color: transparent;
   background-image:
+    /* corner vignette keeps the edges from going flat */
+    radial-gradient(120vw 100vh at 50% 50%, transparent 55%, var(--vignette) 100%),
     radial-gradient(70vw 70vw at 8% -12%, var(--glow-1), transparent 62%),
     radial-gradient(60vw 60vw at 100% 4%, var(--glow-2), transparent 60%),
-    radial-gradient(70vw 50vw at 50% 106%, var(--glow-3), transparent 64%);
+    radial-gradient(70vw 50vw at 50% 106%, var(--glow-3), transparent 64%),
+    radial-gradient(50vw 50vw at 88% 78%, var(--glow-4), transparent 62%),
+    /* a wide, very faint column grid under everything */
+    repeating-linear-gradient(
+      90deg,
+      var(--rule) 0 1px,
+      transparent 1px 25%
+    );
   background-repeat: no-repeat;
 }
 
@@ -1076,5 +1097,223 @@ body::after {
 @media (max-width: 760px) {
   .hero::after {
     display: none;
+  }
+}
+
+
+/* =============================================================== cart === */
+
+.cart-button.has-items {
+  border-color: var(--accent);
+}
+
+.cart-total-chip {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding-left: 10px;
+  margin-left: 2px;
+  border-left: 1px solid var(--line);
+  color: var(--accent);
+}
+
+/* =============================================================== tags === */
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.tag-input input {
+  flex: 1 1 130px;
+  min-width: 110px;
+  width: auto;
+  border: none;
+  padding: 5px 4px;
+  background: transparent;
+}
+
+.tag-input input:focus {
+  outline: none;
+}
+
+.tag-input:focus-within {
+  border-color: var(--accent);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 5px 6px 5px 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.tag-chip button {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  border: none;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tag-chip button:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.tag-suggestion {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tag-suggestion:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* ============================================================= filters == */
+
+.filter-bar {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 40px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.filter-search {
+  width: 100%;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+
+.filter-chip:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.filter-chip.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.filter-count {
+  font-size: 0.68rem;
+  opacity: 0.7;
+}
+
+/* ============================================================= contact == */
+
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0 16px;
+}
+
+.contact-links {
+  display: grid;
+  gap: 2px;
+}
+
+.contact-links a {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.contact-links a:last-child {
+  border-bottom: none;
+}
+
+.contact-links a:hover strong {
+  color: var(--accent);
+}
+
+/* =============================================================== admin == */
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 40px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .contact-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

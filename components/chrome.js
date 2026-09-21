@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth, useCart, useTheme } from "@/components/providers";
+import { formatPrice } from "@/lib/format";
 
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/galleries", label: "Galleries" },
-  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export const SOCIALS = [
@@ -31,7 +32,7 @@ export const SOCIALS = [
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { items } = useCart();
+  const { items, subtotalCents } = useCart();
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -40,8 +41,10 @@ export function SiteHeader() {
 
   return (
     <header className="site-header">
-      <Link href="/" className="monogram" aria-label="Noah Homick — home">
-        NH
+      <Link href="/" className="brand" aria-label="Homick Flicks — home">
+        {/* The mark is white-on-black artwork, so its plate stays dark in both
+            themes rather than inverting with the palette. */}
+        <img src="/logo-mark.png" alt="Homick Flicks" />
       </Link>
 
       <nav className={`site-nav ${open ? "is-open" : ""}`}>
@@ -67,9 +70,24 @@ export function SiteHeader() {
       </nav>
 
       <div className="header-actions">
-        <Link href="/cart" className="cart-button" aria-label="Cart">
-          Cart
-          {items.length > 0 && <span className="cart-count">{items.length}</span>}
+        <Link
+          href="/cart"
+          className={`cart-button ${items.length > 0 ? "has-items" : ""}`}
+          aria-label={
+            items.length > 0
+              ? `Cart, ${items.length} photos, ${formatPrice(subtotalCents)}`
+              : "Cart"
+          }
+        >
+          <span>Cart</span>
+          {items.length > 0 && (
+            <>
+              <span className="cart-count">{items.length}</span>
+              <span className="cart-total-chip">
+                {formatPrice(subtotalCents)}
+              </span>
+            </>
+          )}
         </Link>
         <button
           className="nav-toggle"
@@ -148,12 +166,12 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div>
-        <p className="footer-mark">Noah Homick</p>
+        <p className="footer-mark">Homick Flicks</p>
         <p className="muted">Sports photography — Midland, Ontario</p>
       </div>
       <div className="footer-links">
         <Link href="/galleries">Galleries</Link>
-        <Link href="/about">About</Link>
+        <Link href="/contact">Contact</Link>
         {SOCIALS.map((s) => (
           <a
             key={s.label}

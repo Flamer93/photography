@@ -11,6 +11,7 @@ import {
 } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import { useAuth } from "@/components/providers";
+import { TagInput } from "@/components/taginput";
 import {
   addPhoto,
   deletePhoto,
@@ -412,6 +413,7 @@ function GalleryDetails({ gallery, onSaved, onError }) {
   const [title, setTitle] = useState(gallery.title || "");
   const [description, setDescription] = useState(gallery.description || "");
   const [venue, setVenue] = useState(gallery.venue || "");
+  const [tags, setTags] = useState(gallery.tags || []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -424,6 +426,7 @@ function GalleryDetails({ gallery, onSaved, onError }) {
         title: title.trim(),
         description: description.trim(),
         venue: venue.trim(),
+        tags,
       });
       setSaved(true);
       await onSaved();
@@ -461,6 +464,21 @@ function GalleryDetails({ gallery, onSaved, onError }) {
             setSaved(false);
           }}
         />
+      </div>
+
+      <div className="field">
+        <label htmlFor="g-tags">Teams</label>
+        <TagInput
+          id="g-tags"
+          tags={tags}
+          onChange={(next) => {
+            setTags(next);
+            setSaved(false);
+          }}
+        />
+        <span className="muted small">
+          Buyers filter the gallery list by these.
+        </span>
       </div>
 
       <div className="field">

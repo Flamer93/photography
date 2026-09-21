@@ -42,6 +42,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Contact-page enquiries. Anyone may send one; only the admin can read
+    // them back. The size caps are the only spam brake -- if it ever gets
+    // abused this needs a captcha or an auth requirement.
+    match /enquiries/{enquiryId} {
+      allow create: if request.resource.data.handled == false
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 80
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() <= 120
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() > 0
+                    && request.resource.data.message.size() <= 1500;
+
+      allow read, update, delete: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -34,7 +34,8 @@ deployed values.
 | `app/galleries/`                 | Gallery index and individual game galleries      |
 | `app/cart/`                      | Cart, sign-in gate, checkout                     |
 | `app/admin/`                     | Dashboard: galleries, orders, revenue            |
-| `app/admin/galleries/[id]/`      | Upload photos, set prices, publish               |
+| `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
+| `app/contact/`                   | Contact form, writes to `enquiries`              |
 | `components/providers.js`        | Theme, auth and cart context                     |
 | `lib/images.js`                  | Browser-side downscale + watermark               |
 | `lib/db.js`                      | Firestore reads and writes                       |
@@ -43,13 +44,15 @@ deployed values.
 
 ```
 galleries/{id}                 title, slug, sport, dateOf, venue, description,
-                               published, defaultPriceCents, coverUrl, photoCount,
-                               watermark, lowRes
+                               tags[], published, defaultPriceCents, coverUrl,
+                               photoCount, watermark, lowRes
 galleries/{id}/photos/{id}     previewUrl, previewPath, originalPath,
                                width, height, priceCents, filename,
                                watermarked, lowRes
 orders/{id}                    buyerUid, buyerEmail, buyerName, buyerPhone,
                                note, items[], subtotalCents, status, createdAt
+enquiries/{id}                 name, email, phone, reason, team, message,
+                               handled, createdAt
 ```
 
 Storage: `previews/{galleryId}/{photoId}` and `covers/{galleryId}` are
@@ -81,6 +84,21 @@ deploy separately:
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
+
+## Team tags
+
+Galleries carry a free-text `tags` array of team names. The buyer-facing
+filter on `/galleries` is built from the tags that actually exist on
+published galleries, so it never offers a team with nothing behind it.
+Selecting several teams reads as OR. Filtering and search are done in the
+browser over the already-loaded gallery list, which is fine at this scale but
+would need real queries past a few hundred galleries.
+
+## Contact form
+
+Anyone can create an `enquiries` document without signing in; only the admin
+can read, update or delete them. The only spam brake is field-size validation
+in the rules -- if it gets abused it needs a captcha or an auth requirement.
 
 ## Known limitations
 

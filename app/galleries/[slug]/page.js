@@ -116,6 +116,15 @@ export default function GalleryPage() {
               <span>{formatPrice(gallery.defaultPriceCents)} each</span>
             ) : null}
           </div>
+          {(gallery.tags || []).length > 0 && (
+            <span className="tag-list">
+              {gallery.tags.map((t) => (
+                <span key={t} className="tag">
+                  {t}
+                </span>
+              ))}
+            </span>
+          )}
           {items.length > 0 && (
             <div>
               <Link href="/cart" className="btn accent">
