@@ -138,7 +138,7 @@ export async function GET() {
   const key = (process.env.RESEND_API_KEY || "").trim();
   return Response.json({
     ok: true,
-    build: "trim-key",
+    build: "secret-v4",
     keyPresent: key.length > 0,
     keyLength: key.length,
     keyPrefix: key.slice(0, 3),
