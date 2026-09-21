@@ -56,3 +56,10 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Resend API key for contact-form notification emails. Held in Secret
+  # Manager, never in this file, and only needed by the server at runtime.
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+    availability:
+      - RUNTIME

@@ -28,15 +28,26 @@ export default function ContactPage() {
     setBusy(true);
     setError("");
     try {
-      await createEnquiry({
+      const payload = {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
         reason,
         team: team.trim(),
         message: message.trim(),
-      });
+      };
+
+      // Store first: the message must survive even if the email fails.
+      await createEnquiry(payload);
       setSent(true);
+
+      // Then nudge the inbox. Best effort -- a failure here is logged, not
+      // shown, because the message is already saved.
+      fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch((e) => console.error("Notification email failed:", e));
     } catch (err) {
       setError(err.message);
     } finally {

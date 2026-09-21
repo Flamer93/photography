@@ -36,7 +36,8 @@ deployed values.
 | `app/admin/`                     | Dashboard: galleries, orders, revenue            |
 | `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
 | `app/contact/`                   | Contact form, writes to `enquiries`              |
-| `components/providers.js`        | Theme, auth and cart context                     |
+| `app/api/contact/route.js`       | Emails the admin when a message arrives          |
+| `components/providers.js`        | Auth and cart context                            |
 | `lib/images.js`                  | Browser-side downscale + watermark               |
 | `lib/db.js`                      | Firestore reads and writes                       |
 
@@ -99,6 +100,31 @@ would need real queries past a few hundred galleries.
 Anyone can create an `enquiries` document without signing in; only the admin
 can read, update or delete them. The only spam brake is field-size validation
 in the rules -- if it gets abused it needs a captcha or an auth requirement.
+
+## Contact email notifications
+
+The browser writes the message to Firestore, then posts the same payload to
+`/api/contact`, which emails the admin through Resend. The order matters: the
+message is stored first, so a failed email loses the notification but never
+the message.
+
+The key lives in Secret Manager, referenced from `apphosting.yaml` as
+`RESEND_API_KEY` with `RUNTIME` availability only. It has no `NEXT_PUBLIC_`
+prefix and must never get one -- that would ship it to the browser.
+
+Create or rotate it with:
+
+```bash
+firebase apphosting:secrets:set RESEND_API_KEY
+```
+
+The secret must exist **before** a push that references it, or the rollout
+fails. Without a key the route returns `emailed: false` and the form still
+works.
+
+Sending currently uses Resend's shared `onboarding@resend.dev` domain, which
+only delivers to the address the Resend account was created with. To send
+from a real address, verify a domain in Resend and set `CONTACT_FROM`.
 
 ## Known limitations
 
