@@ -51,7 +51,10 @@ export async function POST(request) {
     return Response.json({ ok: false, error: "missing-fields" }, { status: 400 });
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
+  // Trimmed: a secret set from an interactive prompt can carry a trailing
+  // newline, which corrupts the Authorization header even when the key itself
+  // is correct.
+  const apiKey = (process.env.RESEND_API_KEY || "").trim();
 
   // Checked after validation so a malformed request is still a 400. No key
   // configured is not an error: the site keeps working and the message is
@@ -127,4 +130,17 @@ ${team ? `Team: ${escapeHtml(team)}<br>` : ""}
     console.error("Resend request failed:", err);
     return Response.json({ ok: false, emailed: false }, { status: 502 });
   }
+}
+
+// Diagnostic probe: confirms which build is serving and whether a key reached
+// the runtime, without sending anything or revealing the key.
+export async function GET() {
+  const key = (process.env.RESEND_API_KEY || "").trim();
+  return Response.json({
+    ok: true,
+    build: "trim-key",
+    keyPresent: key.length > 0,
+    keyLength: key.length,
+    keyPrefix: key.slice(0, 3),
+  });
 }
