@@ -63,3 +63,31 @@ env:
     secret: RESEND_API_KEY
     availability:
       - RUNTIME
+
+  # A second Firebase project (no billing, Spark plan) used only for Gemini
+  # calls. The main project must keep its billing account for App Hosting, and
+  # Gemini's free tier requires a project with none -- so the model call lives
+  # somewhere else. Public config, same as the block above.
+  - variable: NEXT_PUBLIC_AI_FIREBASE_API_KEY
+    value: AIzaSyBwH7Z34V7W6Lr_6RKbO0t1DEYv-BRAWjA
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_AI_FIREBASE_AUTH_DOMAIN
+    value: homick-flicks-ai.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_AI_FIREBASE_PROJECT_ID
+    value: homick-flicks-ai
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_AI_FIREBASE_APP_ID
+    value: 1:803809882774:web:7c937b189cd6831e7648b7
+    availability:
+      - BUILD
+      - RUNTIME
