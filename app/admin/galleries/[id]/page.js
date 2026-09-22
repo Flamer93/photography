@@ -23,6 +23,18 @@ import {
 import { buildPreview, readableSize } from "@/lib/images";
 import { formatPrice, parsePriceToCents } from "@/lib/format";
 
+// Keeps a filename safe to sit inside a Content-Disposition header: no quotes,
+// no line breaks, plain ASCII. Anything else is replaced rather than dropped so
+// the name stays recognizable.
+function sanitizeFilename(name) {
+  const clean = String(name || "")
+    .replace(/[\r\n"\\]/g, "")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .trim()
+    .slice(0, 100);
+  return clean || "photo.jpg";
+}
+
 export default function AdminGalleryPage() {
   const { id } = useParams();
   const { ready, isAdmin } = useAuth();
@@ -114,6 +126,13 @@ export default function AdminGalleryPage() {
         await new Promise((resolve, reject) => {
           const task = uploadBytesResumable(originalRef, file, {
             contentType: file.type,
+            // Makes a buyer's download link save the file instead of opening
+            // it in a browser tab. Storage serves back whatever disposition is
+            // stored on the object, so this has to be set at upload time -- the
+            // HTML download attribute is ignored for another origin.
+            contentDisposition: `attachment; filename="${sanitizeFilename(
+              file.name
+            )}"`,
           });
           task.on(
             "state_changed",

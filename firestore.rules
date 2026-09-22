@@ -59,6 +59,16 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Download galleries for larger orders. The document id is the order id --
+    // a 20-character random Firestore id -- and that id IS the access secret,
+    // exactly like the Storage download links it contains. Anyone holding the
+    // link can view and download; that is the same trust model the individual
+    // emailed links already use. No buyer email is stored here.
+    match /deliveries/{orderId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

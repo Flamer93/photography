@@ -10,6 +10,7 @@ import { SignIn } from "@/components/signin";
 import { TagInput } from "@/components/taginput";
 import {
   createGallery,
+  deleteDeliveryGallery,
   deleteEnquiry,
   deleteGallery,
   deleteOrder,
@@ -17,6 +18,7 @@ import {
   listAllOrders,
   listEnquiries,
   recordDelivery,
+  saveDeliveryGallery,
   setEnquiryHandled,
   setOrderStatus,
   updateGallery,
@@ -27,6 +29,9 @@ import {
   parsePriceToCents,
   slugify,
 } from "@/lib/format";
+
+// Orders larger than this get a download page instead of one link per photo.
+const GALLERY_THRESHOLD = 3;
 
 export default function AdminPage() {
   const { user, ready, isAdmin } = useAuth();
@@ -446,7 +451,12 @@ function OrdersTab() {
       for (const item of deliverable) {
         try {
           const url = await getDownloadURL(storageRef(storage, item.originalPath));
-          links.push({ url, galleryTitle: item.galleryTitle, filename: item.filename });
+          links.push({
+            url,
+            galleryTitle: item.galleryTitle,
+            filename: item.filename,
+            previewUrl: item.previewUrl || "",
+          });
         } catch (e) {
           console.error("Could not get a download URL for", item.originalPath, e);
         }
@@ -461,6 +471,26 @@ function OrdersTab() {
         return;
       }
 
+      const orderRef = order.id.slice(0, 8).toUpperCase();
+
+      // A handful of links reads fine in an email. Past that it becomes a wall
+      // of URLs, so bigger orders get one link to a download page instead.
+      let emailItems = links;
+      if (links.length > GALLERY_THRESHOLD) {
+        await saveDeliveryGallery(order.id, {
+          items: links,
+          buyerName: order.buyerName || "",
+          orderRef,
+        });
+        emailItems = [
+          {
+            url: `${window.location.origin}/download/${order.id}`,
+            galleryTitle: `Your gallery — ${links.length} photos`,
+            filename: "",
+          },
+        ];
+      }
+
       const idToken = await auth.currentUser.getIdToken();
       const res = await fetch("/api/deliver", {
         method: "POST",
@@ -469,8 +499,8 @@ function OrdersTab() {
           idToken,
           buyerEmail: order.buyerEmail,
           buyerName: order.buyerName,
-          orderRef: order.id.slice(0, 8).toUpperCase(),
-          items: links,
+          orderRef,
+          items: emailItems,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -519,6 +549,9 @@ function OrdersTab() {
     )
       return;
     try {
+      // Take the download page with it, or its link would outlive the order.
+      // A gallery only exists for larger orders, so a missing one is normal.
+      await deleteDeliveryGallery(order.id).catch(() => {});
       await deleteOrder(order.id);
       await refresh();
     } catch (e) {

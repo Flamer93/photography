@@ -37,6 +37,8 @@ deployed values.
 | `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
 | `app/contact/`                   | Contact form, writes to `enquiries`              |
 | `app/api/contact/route.js`       | Emails the admin when a message arrives          |
+| `app/api/deliver/route.js`       | Emails a buyer their files once paid             |
+| `app/download/[orderId]/`        | Buyer download page for larger orders            |
 | `components/providers.js`        | Auth and cart context                            |
 | `lib/images.js`                  | Browser-side downscale + watermark               |
 | `lib/db.js`                      | Firestore reads and writes                       |
@@ -54,6 +56,7 @@ orders/{id}                    buyerUid, buyerEmail, buyerName, buyerPhone,
                                note, items[], subtotalCents, status, createdAt
 enquiries/{id}                 name, email, phone, reason, team, message,
                                handled, createdAt
+deliveries/{orderId}           items[], buyerName, orderRef, createdAt
 ```
 
 Storage: `previews/{galleryId}/{photoId}` and `covers/{galleryId}` are
@@ -126,14 +129,6 @@ Sending currently uses Resend's shared `onboarding@resend.dev` domain, which
 only delivers to the address the Resend account was created with. To send
 from a real address, verify a domain in Resend and set `CONTACT_FROM`.
 
-## Known limitations
-
-- **Payments are not wired up.** Orders are created with status `pending`; the
-  admin marks them paid by hand. Stripe Checkout is the intended next step.
-- **Order totals are client-supplied.** A determined buyer could post an order
-  with a wrong price. It is visible to the admin before anything is delivered,
-  and the fix lands with payments: create the checkout session server-side from
-  the prices in Firestore.
 ## File delivery
 
 Marking an order paid in Admin > Orders automatically emails the buyer their
@@ -147,6 +142,27 @@ both to `/api/deliver`. That route verifies the token really belongs to
 `NEXT_PUBLIC_ADMIN_UID` using `firebase-admin` (`verifyIdToken`, which works
 on App Hosting with zero extra setup via Application Default Credentials --
 no service account key needed), then emails the links through Resend.
+
+Orders of **more than three photos** get one link to a download page
+(`/download/{orderId}`) instead of a wall of per-photo links. That page
+lists every purchased photo with its own Download button plus a Download
+all. Three or fewer still get direct links in the email.
+
+The page reads a `deliveries/{orderId}` document, written by the admin
+browser when files are sent. That collection is publicly readable: the order
+id is a 20-character random Firestore id and acts as the access secret,
+the same trust model as the emailed links it contains. No buyer email is
+stored in it. Deleting an order deletes its download page too.
+
+Originals are uploaded with `contentDisposition: attachment`, which is what
+makes a download link save the file instead of opening it in a tab. It has
+to be set at upload time -- the HTML `download` attribute is ignored
+cross-origin. **This only applies to photos uploaded after this change;**
+anything already in Storage will still open in a tab rather than download.
+
+Download all fires the saves in sequence, 500ms apart. Browsers typically
+ask permission before saving several files at once -- that prompt is
+expected browser behaviour, not a fault.
 
 **Known limitation -- delivery links do not expire.** These are ordinary
 Firebase Storage download URLs, which are bearer links: anyone holding the
@@ -171,3 +187,12 @@ If email delivery fails for any reason, the order's paid status is
 unaffected -- payment truth and email delivery are tracked as two separate
 fields (`status` and `filesSentAt`/`deliveryError`) precisely so a failed
 send never makes a paid order look unpaid, or blocks marking it paid.
+
+## Known limitations
+
+- **Payments are not wired up.** Orders are created with status `pending`; the
+  admin marks them paid by hand. Stripe Checkout is the intended next step.
+- **Order totals are client-supplied.** A determined buyer could post an order
+  with a wrong price. It is visible to the admin before anything is delivered,
+  and the fix lands with payments: create the checkout session server-side from
+  the prices in Firestore.
