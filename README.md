@@ -42,6 +42,8 @@ deployed values.
 | `components/providers.js`        | Auth and cart context                            |
 | `lib/images.js`                  | Browser-side downscale + watermark               |
 | `lib/db.js`                      | Firestore reads and writes                       |
+| `lib/jersey.js`                  | Jersey parsing, colours, filtering                |
+| `lib/vision.js`                  | Firebase AI Logic jersey detection                |
 
 ## Data model
 
@@ -51,7 +53,8 @@ galleries/{id}                 title, slug, sport, dateOf, venue, description,
                                photoCount, watermark, lowRes
 galleries/{id}/photos/{id}     previewUrl, previewPath, originalPath,
                                width, height, priceCents, filename,
-                               watermarked, lowRes
+                               watermarked, lowRes,
+                               players[{number,color}], playersSource
 orders/{id}                    buyerUid, buyerEmail, buyerName, buyerPhone,
                                note, items[], subtotalCents, status, createdAt
 enquiries/{id}                 name, email, phone, reason, team, message,
@@ -97,6 +100,58 @@ published galleries, so it never offers a team with nothing behind it.
 Selecting several teams reads as OR. Filtering and search are done in the
 browser over the already-loaded gallery list, which is fine at this scale but
 would need real queries past a few hundred galleries.
+
+## Jersey numbers and colours
+
+Every photo can carry a `players` array -- one `{ number, color }` per player
+whose jersey is readable in the frame, because most action shots have two or
+three in them. Buyers then filter a gallery down to their own kid instead of
+scrolling a 300-photo game.
+
+Colours are normalised to a fixed vocabulary in `lib/jersey.js` ("royal blue"
+and "royal" both become `blue`), and leading zeros are stripped from numbers
+so `07` and `7` are one jersey -- except an all-zero number, since hockey
+treats `0` and `00` as two different players. Without that, the filter would
+offer three chips for the same thing.
+
+Filtering is client-side over the photos already loaded for that gallery, so
+there is no index or query to deploy. Picking a number **and** a colour means
+"that number wearing that colour" -- one player has to satisfy both -- while
+several numbers, or several colours, read as OR.
+
+### Entering them
+
+Type them under each photo on the admin gallery page: `12 white`, Enter. The
+order does not matter and `#` is optional. The swatch row recolours the last
+chip, which is the usual correction after an AI pass -- the number is normally
+right and the colour is what it got wrong.
+
+### AI detection
+
+**Detect jerseys with AI** on the admin gallery page reads the photos that have
+no jerseys on them yet; **Re-read all** does the lot and overwrites manual
+entries. It runs in the admin's browser through Firebase AI Logic (Gemini
+2.5 Flash), one photo at a time so the progress bar is honest and **Stop**
+genuinely stops. Three consecutive failures abort the run, because a setup or
+quota problem fails identically on every photo and there is no sense burning a
+whole gallery to prove it.
+
+It sends the **original**, not the preview: the tiled preview watermark sits
+right over the middle of a jersey. The image is downscaled to 1280px in the
+browser first -- a 24MP original is slower to upload and no more readable to
+the model. Nothing is sent anywhere at upload time; this only ever runs when
+the button is pressed.
+
+**One-time setup:** open the Firebase console > Build > AI Logic > Get started
+and pick the Gemini Developer API. Until that is done every call fails with a
+permission error, which the panel translates into a sentence saying exactly
+that. No API key goes in the bundle -- the call is authorised by the Firebase
+app itself, which is the whole point of AI Logic over calling Gemini directly.
+
+**Check its work.** The model is told to skip any number it cannot genuinely
+read, but it still gets some wrong, and a wrong number sends a parent to the
+wrong photos. Photos it filled in say "Read by AI" under the chips until you
+edit them.
 
 ## Contact form
 

@@ -12,6 +12,7 @@ import {
 import { storage } from "@/lib/firebase";
 import { useAuth } from "@/components/providers";
 import { TagInput } from "@/components/taginput";
+import { JerseyInput } from "@/components/jerseyinput";
 import {
   addPhoto,
   deletePhoto,
@@ -22,6 +23,8 @@ import {
 } from "@/lib/db";
 import { buildPreview, readableSize } from "@/lib/images";
 import { formatPrice, parsePriceToCents } from "@/lib/format";
+import { normalizePlayers } from "@/lib/jersey";
+import { describeAiError, detectPlayers } from "@/lib/vision";
 
 // Keeps a filename safe to sit inside a Content-Disposition header: no quotes,
 // no line breaks, plain ASCII. Anything else is replaced rather than dropped so
@@ -46,6 +49,13 @@ export default function AdminGalleryPage() {
   const [queue, setQueue] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef(null);
+
+  // AI jersey detection runs one photo at a time so progress is honest and a
+  // stop actually stops. The ref is what the loop checks -- state would be a
+  // stale closure by the time the next photo comes round.
+  const [ai, setAi] = useState({ running: false, done: 0, total: 0, failed: 0 });
+  const [aiError, setAiError] = useState("");
+  const stopAi = useRef(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -211,6 +221,98 @@ export default function AdminGalleryPage() {
     }
   }
 
+  async function savePlayers(photo, next, source = "manual") {
+    const players = normalizePlayers(next);
+    // Optimistic: the chip is already on screen, and a failed write surfaces
+    // in the error strip rather than silently reverting under the cursor.
+    setPhotos((prev) =>
+      prev.map((p) =>
+        p.id === photo.id ? { ...p, players, playersSource: source } : p
+      )
+    );
+    try {
+      await updatePhoto(id, photo.id, { players, playersSource: source });
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  // `scope` is "missing" (only photos with nothing on them yet) or "all"
+  // (re-read everything, overwriting what is there). Manual entries are
+  // preserved by "missing", which is why it is the default button.
+  async function runDetection(scope) {
+    const targets =
+      scope === "all"
+        ? photos
+        : photos.filter((p) => (p.players || []).length === 0);
+
+    if (targets.length === 0) {
+      setAiError("Every photo already has jerseys on it.");
+      return;
+    }
+
+    if (
+      scope === "all" &&
+      !window.confirm(
+        `Re-read all ${targets.length} photos? Anything you typed by hand gets overwritten.`
+      )
+    ) {
+      return;
+    }
+
+    stopAi.current = false;
+    setAiError("");
+    setAi({ running: true, done: 0, total: targets.length, failed: 0 });
+
+    let done = 0;
+    let failed = 0;
+    let firstFailure = "";
+
+    for (const photo of targets) {
+      if (stopAi.current) break;
+      try {
+        const players = await detectPlayers(photo);
+        await savePlayers(photo, players, "ai");
+      } catch (e) {
+        failed += 1;
+        if (!firstFailure) firstFailure = describeAiError(e);
+        // A setup or quota problem fails identically on every photo, so
+        // burning through the whole gallery to prove it wastes the admin's
+        // time and their quota. Three strikes and stop.
+        if (failed >= 3) {
+          stopAi.current = true;
+        }
+      }
+      done += 1;
+      setAi({ running: true, done, total: targets.length, failed });
+    }
+
+    setAi({ running: false, done, total: targets.length, failed });
+    if (firstFailure) {
+      setAiError(
+        failed === done
+          ? firstFailure
+          : `${failed} of ${done} photos failed — ${firstFailure}`
+      );
+    }
+  }
+
+  async function clearAllPlayers() {
+    const tagged = photos.filter((p) => (p.players || []).length > 0);
+    if (tagged.length === 0) return;
+    if (!window.confirm(`Clear jerseys from ${tagged.length} photos?`)) return;
+    try {
+      await Promise.all(
+        tagged.map((p) =>
+          updatePhoto(id, p.id, { players: [], playersSource: "manual" })
+        )
+      );
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function removePhoto(photo) {
     if (!window.confirm(`Remove ${photo.filename || "this photo"}?`)) return;
     try {
@@ -358,6 +460,20 @@ export default function AdminGalleryPage() {
         )}
       </div>
 
+      {photos.length > 0 && (
+        <JerseyPanel
+          photos={photos}
+          ai={ai}
+          error={aiError}
+          onRun={runDetection}
+          onStop={() => {
+            stopAi.current = true;
+          }}
+          onClear={clearAllPlayers}
+          onDismissError={() => setAiError("")}
+        />
+      )}
+
       <div className="section-head">
         <h3>{photos.length} photos</h3>
         {photos.length > 0 && (
@@ -394,6 +510,22 @@ export default function AdminGalleryPage() {
                   inputMode="decimal"
                 />
               </div>
+              <div className="field" style={{ marginBottom: 10 }}>
+                <label>Jerseys in this photo</label>
+                <JerseyInput
+                  players={photo.players || []}
+                  onChange={(next) => savePlayers(photo, next)}
+                  disabled={ai.running}
+                />
+                <span className="muted small">
+                  {(photo.players || []).length === 0
+                    ? "Type “12 white”, then Enter. One per player."
+                    : photo.playersSource === "ai"
+                    ? "Read by AI — check it before publishing."
+                    : "Buyers filter by these."}
+                </span>
+              </div>
+
               <p className="muted small" style={{ margin: "0 0 10px" }}>
                 {formatPrice(photo.priceCents)} — {photo.width}×{photo.height}
                 {photo.watermarked === false ? " — unmarked" : ""}
@@ -612,6 +744,96 @@ function CoverPanel({ gallery, onSaved, onError }) {
         >
           Remove cover
         </button>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------- jerseys -- */
+
+function JerseyPanel({
+  photos,
+  ai,
+  error,
+  onRun,
+  onStop,
+  onClear,
+  onDismissError,
+}) {
+  const tagged = photos.filter((p) => (p.players || []).length > 0).length;
+  const missing = photos.length - tagged;
+  const pct = ai.total ? Math.round((ai.done / ai.total) * 100) : 0;
+
+  return (
+    <div className="panel" style={{ marginBottom: 24 }}>
+      <h3 style={{ marginBottom: 12 }}>Jerseys</h3>
+      <p className="muted small" style={{ marginTop: 0 }}>
+        Tag each photo with the numbers and colours you can see in it, and
+        buyers can filter this gallery down to their own kid instead of
+        scrolling the whole game. Type them in under each photo, or let the AI
+        take a first pass and correct what it gets wrong.
+      </p>
+
+      <p className="muted small">
+        <strong>{tagged}</strong> of {photos.length} photos tagged
+        {missing > 0 ? ` — ${missing} still empty` : " — all done"}
+      </p>
+
+      {ai.running ? (
+        <>
+          <div className="progress" style={{ margin: "12px 0 10px" }}>
+            <span style={{ width: `${pct}%` }} />
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span className="muted small">
+              Reading photo {Math.min(ai.done + 1, ai.total)} of {ai.total}
+              {ai.failed > 0 ? ` — ${ai.failed} failed` : ""}
+            </span>
+            <button className="btn ghost small" onClick={onStop}>
+              Stop
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          <button
+            className="btn accent small"
+            onClick={() => onRun("missing")}
+            disabled={missing === 0}
+          >
+            {missing > 0
+              ? `Detect jerseys with AI (${missing})`
+              : "Detect jerseys with AI"}
+          </button>
+          <button className="btn ghost small" onClick={() => onRun("all")}>
+            Re-read all {photos.length}
+          </button>
+          {tagged > 0 && (
+            <button className="btn ghost small" onClick={onClear}>
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+
+      {ai.total > 0 && !ai.running && !error && (
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          Read {ai.done} photo{ai.done === 1 ? "" : "s"}. Worth a skim before
+          you publish — a wrong number sends a parent to the wrong photos.
+        </p>
+      )}
+
+      {error && (
+        <div className="notice error" style={{ marginTop: 14 }}>
+          {error}
+          <button
+            className="btn ghost small"
+            style={{ marginLeft: 12 }}
+            onClick={onDismissError}
+          >
+            Dismiss
+          </button>
+        </div>
       )}
     </div>
   );
