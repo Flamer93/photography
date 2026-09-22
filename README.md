@@ -186,6 +186,46 @@ read, but it still gets some wrong, and a wrong number sends a parent to the
 wrong photos. Photos it filled in say "Read by AI" under the chips until you
 edit them.
 
+### A separate project for the AI
+
+Gemini's free tier is reached by a project having **no billing account**. App
+Hosting requires one. Both cannot be true of `photography-c16ff`, and
+disabling billing on it to get the free tier takes the live site down with it
+-- that is not a trade worth making.
+
+The way round it is a second Firebase project, on the no-cost Spark plan, used
+for nothing but the model call. Photos are still read from the main project's
+Storage bucket; only the Gemini request moves.
+
+1. Firebase console > **Add project**. Any name (`homick-flicks-ai`). Decline
+   Analytics. Do **not** upgrade it to Blaze -- staying on Spark is the entire
+   point.
+2. In it: **Build > AI Logic > Get started**, choose the **Gemini Developer
+   API**.
+3. **Project settings > Your apps > Web**, register an app, and copy the
+   config.
+4. Put four of those values in `.env.local` and in `apphosting.yaml` (BUILD and
+   RUNTIME, same as the other `NEXT_PUBLIC_` vars):
+
+```
+NEXT_PUBLIC_AI_FIREBASE_API_KEY
+NEXT_PUBLIC_AI_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_AI_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_AI_FIREBASE_APP_ID
+```
+
+Leave them unset and everything runs on the main project, which is the right
+answer if that project has Gemini credit. `usingSeparateAiProject` in
+`lib/firebase.js` is the switch, and it is driven entirely by whether those
+values exist -- there is no flag to forget to flip.
+
+**The free tier trades privacy for the money.** Google's pricing page says
+free-tier content may be used to improve their products and paid-tier content
+is excluded, and what gets sent here is photographs of other people's children.
+That is a real decision, not a formality. The paid alternative is credit on the
+main project at <https://ai.studio/projects>, minimum $5, and no second project
+at all.
+
 ## Storage CORS
 
 The AI pass reads photo bytes in the admin's browser, and a browser will not
