@@ -182,13 +182,28 @@ export async function POST(request) {
     });
 
     if (!res.ok) {
-      console.error("Resend rejected the delivery email:", res.status, await res.text());
-      return Response.json({ ok: false, emailed: false }, { status: 502 });
+      const raw = await res.text();
+      console.error("Resend rejected the delivery email:", res.status, raw);
+
+      // Unlike /api/contact, this response never reaches an anonymous
+      // caller -- getting this far already required a verified admin ID
+      // token, so it is safe to hand the admin Resend's actual reason
+      // instead of a generic message they cannot act on.
+      let detail = raw.slice(0, 300);
+      try {
+        const parsed = JSON.parse(raw);
+        detail = parsed.message || parsed.name || detail;
+      } catch {}
+
+      return Response.json(
+        { ok: false, emailed: false, detail },
+        { status: 502 }
+      );
     }
 
     return Response.json({ ok: true, emailed: true });
   } catch (err) {
     console.error("Resend request failed:", err);
-    return Response.json({ ok: false, emailed: false }, { status: 502 });
+    return Response.json({ ok: false, emailed: false, detail: String(err?.message || err) }, { status: 502 });
   }
 }

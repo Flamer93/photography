@@ -12,6 +12,7 @@ import {
   createGallery,
   deleteEnquiry,
   deleteGallery,
+  deleteOrder,
   listAllGalleries,
   listAllOrders,
   listEnquiries,
@@ -481,10 +482,19 @@ function OrdersTab() {
           sent: false,
           error: "Email is not set up yet -- no Resend key configured.",
         });
-      } else {
+      } else if (res.status === 401 || res.status === 403) {
         await recordDelivery(order.id, {
           sent: false,
-          error: "The delivery email did not send. Check the server log.",
+          error: "Not recognized as the admin account -- try signing in again.",
+        });
+      } else {
+        // Resend's own rejection reason, when the server route could get
+        // one -- this response only ever reaches an already-verified admin,
+        // so showing the real reason here is safe and much more useful than
+        // "check the server log", which most admins have no way to do.
+        await recordDelivery(order.id, {
+          sent: false,
+          error: data.detail || "The delivery email did not send.",
         });
       }
       await refresh();
@@ -496,6 +506,23 @@ function OrdersTab() {
       } catch {}
     } finally {
       setSendingId(null);
+    }
+  }
+
+  async function remove(order) {
+    if (
+      !window.confirm(
+        order.status === "paid"
+          ? `Delete this paid order (${formatPrice(order.subtotalCents)})? This removes it from revenue and order history permanently.`
+          : "Delete this order? This cannot be undone."
+      )
+    )
+      return;
+    try {
+      await deleteOrder(order.id);
+      await refresh();
+    } catch (e) {
+      setError(e.message);
     }
   }
 
@@ -615,13 +642,18 @@ function OrdersTab() {
                         onClick={() => mark(o, "pending")}
                       >
                         Mark unpaid
-                      </button>
+                      </button>{" "}
                     </>
                   ) : (
-                    <button className="btn small" onClick={() => mark(o, "paid")}>
-                      Mark paid
-                    </button>
+                    <>
+                      <button className="btn small" onClick={() => mark(o, "paid")}>
+                        Mark paid
+                      </button>{" "}
+                    </>
                   )}
+                  <button className="btn ghost small" onClick={() => remove(o)}>
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
