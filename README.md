@@ -157,16 +157,52 @@ browser first -- a 24MP original is slower to upload and no more readable to
 the model. Nothing is sent anywhere at upload time; this only ever runs when
 the button is pressed.
 
-**One-time setup:** open the Firebase console > Build > AI Logic > Get started
-and pick the Gemini Developer API. Until that is done every call fails with a
-permission error, which the panel translates into a sentence saying exactly
-that. No API key goes in the bundle -- the call is authorised by the Firebase
-app itself, which is the whole point of AI Logic over calling Gemini directly.
+**One-time setup, two things.** Open the Firebase console > Build > AI Logic >
+Get started and pick the Gemini Developer API, and give the Storage bucket a
+CORS policy (see **Storage CORS** below) -- without that second one the browser
+cannot read the photo out of Storage and every detection fails before the model
+is ever called.
+
+Both failures are reported by the stage they happened in, so the panel says
+whether it could not read the photo or could not reach the model rather than
+passing on the browser's bare "Failed to fetch". No API key goes in the bundle
+-- the call is authorised by the Firebase app itself, which is the whole point
+of AI Logic over calling Gemini directly.
 
 **Check its work.** The model is told to skip any number it cannot genuinely
 read, but it still gets some wrong, and a wrong number sends a parent to the
 wrong photos. Photos it filled in say "Read by AI" under the chips until you
 edit them.
+
+## Storage CORS
+
+The AI pass reads photo bytes in the admin's browser, and a browser will not
+hand a script bytes from another origin unless that origin says it may. The
+Firebase Storage download endpoint sends no `Access-Control-Allow-Origin` on a
+GET until the bucket has a CORS policy, so every read fails with the browser's
+bare `TypeError: Failed to fetch`.
+
+What makes this one worth a section: the endpoint answers the **preflight**
+with `Access-Control-Allow-Origin: *`, so a quick look says CORS is fine. It
+is the actual GET that carries nothing. `<img>` tags keep working throughout,
+because a plain image load is not subject to the check -- which is why the
+galleries look healthy while the AI button does not work.
+
+`cors.json` in the repo root is the policy. Apply it once, from
+[Cloud Shell](https://console.cloud.google.com/) (the `>_` icon, top right --
+`gcloud` is already installed and signed in there):
+
+```bash
+printf '[{"origin":["https://photography-web--photography-c16ff.us-central1.hosted.app","http://localhost:3000"],"method":["GET"],"responseHeader":["Content-Type"],"maxAgeSeconds":3600}]' > cors.json && gcloud storage buckets update gs://photography-c16ff.firebasestorage.app --cors-file=cors.json
+```
+
+With `gcloud` installed locally, `gcloud storage buckets update
+gs://photography-c16ff.firebasestorage.app --cors-file=cors.json` from the repo
+root does the same thing.
+
+It is a bucket setting, not part of a deploy -- `firebase deploy` does not
+touch it, and it survives every rollout. Adding a new origin (a custom domain,
+say) means editing `cors.json` and running the command again.
 
 ## Contact form
 

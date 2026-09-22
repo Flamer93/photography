@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://photography-web--photography-c16ff.us-central1.hosted.app",
+      "http://localhost:3000"
+    ],
+    "method": ["GET"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
