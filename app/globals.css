@@ -1692,3 +1692,30 @@ body::after {
     animation: none;
   }
 }
+
+/* ====================================================== brand watermark == */
+
+/* A large, very faint mark pinned to the viewport on every page.
+   It lives on .shell rather than body because body::before and body::after
+   already carry the colour wash and the grain. .shell has z-index 1 and so
+   opens its own stacking context; a z-index -1 pseudo-element inside it paints
+   above those two layers but behind every piece of content. */
+.shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("/logo-watermark.png");
+  background-repeat: no-repeat;
+  background-position: center 46%;
+  background-size: min(62vw, 720px) auto;
+  opacity: 0.025;
+}
+
+@media (max-width: 760px) {
+  .shell::before {
+    background-size: 74vw auto;
+    opacity: 0.018;
+  }
+}
