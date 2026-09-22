@@ -74,6 +74,28 @@ function headerSafe(value, max) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORAGE_HOST_RE = /^https:\/\/firebasestorage\.googleapis\.com\//;
 
+// A delivery email carries either direct Storage links, or -- for a larger
+// order -- one link to this site's own /download page.
+//
+// The /download/ path is accepted on any host, not just this one. A host
+// comparison looked tighter, but App Hosting sits behind a CDN that can
+// rewrite the Host header, and a mismatch there would silently stop delivery
+// emails again. This is not much of a security boundary either way: reaching
+// this code already required a verified admin token, and an admin could just
+// send an email themselves. What it does do is stop a bug from mailing out a
+// stray URL of some entirely different shape.
+function allowedUrl(url, selfHost) {
+  if (STORAGE_HOST_RE.test(url)) return true;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    if (selfHost && u.host === selfHost) return true;
+    return u.pathname.startsWith("/download/");
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request) {
   let body;
   try {
@@ -113,10 +135,13 @@ export async function POST(request) {
     return Response.json({ ok: false, error: "no-items" }, { status: 400 });
   }
 
+  const selfHost =
+    request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+
   const links = [];
   for (const raw of items) {
     const url = String(raw?.url || "");
-    if (!STORAGE_HOST_RE.test(url)) continue; // ignore anything that is not a Storage URL
+    if (!allowedUrl(url, selfHost)) continue;
     links.push({
       url,
       label: headerSafe(raw?.galleryTitle, 80) || "Photo",
