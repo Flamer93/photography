@@ -7,6 +7,7 @@ import {
   SocialBlock,
   SocialRail,
 } from "@/components/chrome";
+import { WelcomePrompt } from "@/components/welcomeprompt";
 
 const display = Archivo_Black({
   subsets: ["latin"],
@@ -42,6 +43,7 @@ export default function RootLayout({ children }) {
             <SocialBlock />
             <SiteFooter />
           </div>
+          <WelcomePrompt />
         </Providers>
       </body>
     </html>

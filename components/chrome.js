@@ -34,7 +34,7 @@ export const SOCIALS = [
 export function SiteHeader() {
   const pathname = usePathname();
   const { items, subtotalCents } = useCart();
-  const { isAdmin } = useAuth();
+  const { user, ready, isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
 
   const isActive = (href) =>
@@ -88,6 +88,21 @@ export function SiteHeader() {
             </>
           )}
         </Link>
+        {ready &&
+          (user ? (
+            <Link
+              href="/signin"
+              className="account-chip"
+              title={`Signed in as ${user.email || user.uid}`}
+              aria-label={`Account — signed in as ${user.email || user.uid}`}
+            >
+              {(user.email || "?").charAt(0).toUpperCase()}
+            </Link>
+          ) : (
+            <Link href="/signin" className="signin-link">
+              Sign in
+            </Link>
+          ))}
         <button
           className="nav-toggle"
           aria-label="Toggle menu"
