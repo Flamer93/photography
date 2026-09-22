@@ -145,9 +145,11 @@ entries. There is also a **Tag jerseys** button on each row of the dashboard
 Galleries table, so a night of games can be tagged without opening each one;
 the Jerseys column shows progress while it runs and reads "Tagged" afterwards.
 Both buttons drive the same loop (`components/jerseyrun.js`) so they cannot
-drift apart. Only one run happens at a time. It runs in the admin's browser through Firebase AI Logic (Gemini
-2.5 Flash), one photo at a time so the progress bar is honest and **Stop**
-genuinely stops. Three consecutive failures abort the run, because a setup or
+drift apart. Only one run happens at a time.
+
+It runs in the admin's browser through Firebase AI Logic, on whichever Gemini
+model `MODEL` in `lib/vision.js` names, one photo at a time so the progress bar
+is honest and **Stop** genuinely stops. Three consecutive failures abort the run, because a setup or
 quota problem fails identically on every photo and there is no sense burning a
 whole gallery to prove it.
 
@@ -157,11 +159,21 @@ browser first -- a 24MP original is slower to upload and no more readable to
 the model. Nothing is sent anywhere at upload time; this only ever runs when
 the button is pressed.
 
-**One-time setup, two things.** Open the Firebase console > Build > AI Logic >
-Get started and pick the Gemini Developer API, and give the Storage bucket a
-CORS policy (see **Storage CORS** below) -- without that second one the browser
-cannot read the photo out of Storage and every detection fails before the model
-is ever called.
+**One-time setup, three things**, and each one fails in a completely
+different place:
+
+1. Firebase console > Build > AI Logic > Get started, Gemini Developer API.
+2. A CORS policy on the Storage bucket -- see **Storage CORS** below. Without
+   it the browser cannot read the photo at all and detection fails before the
+   model is ever called.
+3. Gemini credit on the project, at <https://ai.studio/projects>. With none,
+   every call comes back 429 "prepayment credits are depleted".
+
+**The model name is not forever.** Google retires them: `gemini-2.5-flash`
+stopped being available to new projects mid-flight, and the API answered with a
+404 naming its replacement. `MODEL` in `lib/vision.js` is the one line to
+change when that happens, and the panel says so rather than making it look like
+a setup problem.
 
 Both failures are reported by the stage they happened in, so the panel says
 whether it could not read the photo or could not reach the model rather than
