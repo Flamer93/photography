@@ -518,13 +518,18 @@ function OrdersTab() {
           error: "Not recognized as the admin account -- try signing in again.",
         });
       } else {
-        // Resend's own rejection reason, when the server route could get
-        // one -- this response only ever reaches an already-verified admin,
-        // so showing the real reason here is safe and much more useful than
-        // "check the server log", which most admins have no way to do.
+        // Resend's own rejection reason, or failing that the route's own
+        // error code -- this response only ever reaches an already-verified
+        // admin, so showing the real reason here is safe and much more useful
+        // than "check the server log", which most admins cannot do. Showing
+        // only `detail` once hid a route-level rejection behind a generic
+        // message and cost a round of guesswork.
         await recordDelivery(order.id, {
           sent: false,
-          error: data.detail || "The delivery email did not send.",
+          error:
+            data.detail ||
+            (data.error ? `Delivery failed: ${data.error}` : null) ||
+            "The delivery email did not send.",
         });
       }
       await refresh();
