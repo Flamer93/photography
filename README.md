@@ -134,6 +134,40 @@ from a real address, verify a domain in Resend and set `CONTACT_FROM`.
   with a wrong price. It is visible to the admin before anything is delivered,
   and the fix lands with payments: create the checkout session server-side from
   the prices in Firestore.
-- **Purchased downloads are not automated.** Originals stay admin-only; files
-  are sent manually. Automating this means a server route that verifies a paid
-  order and issues a signed URL.
+## File delivery
+
+Marking an order paid in Admin > Orders automatically emails the buyer their
+full-resolution files. There is also a manual **Send files** / **Resend
+files** button on any paid order, for retries.
+
+**How it works:** the admin's browser (which already has Storage read access
+to `originals/` per `storage.rules`) generates a download URL for each
+purchased photo, gets a Firebase ID token for the signed-in admin, and posts
+both to `/api/deliver`. That route verifies the token really belongs to
+`NEXT_PUBLIC_ADMIN_UID` using `firebase-admin` (`verifyIdToken`, which works
+on App Hosting with zero extra setup via Application Default Credentials --
+no service account key needed), then emails the links through Resend.
+
+**Known limitation -- delivery links do not expire.** These are ordinary
+Firebase Storage download URLs, which are bearer links: anyone holding the
+URL can open it, the same as any shared file link. There is no built-in
+expiry. Fixing that means switching to `bucket.file(path).getSignedUrl()`
+with an expiry, which needs the runtime service account to hold "Service
+Account Token Creator" on itself -- a real but deliberately deferred piece of
+work, to avoid an IAM permission that is easy to misconfigure and hard to
+debug without live testing.
+
+**Known limitation -- Resend's shared sending domain only delivers to the
+account's own address.** Until `homick.com` (or a subdomain) is verified in
+Resend, delivery emails sent to any buyer other than the Resend account
+owner will likely be rejected or silently dropped by Resend, same as the
+contact-form notification email. Marking an order paid will still work and
+the links are still generated correctly; only the automatic email to a real
+buyer is blocked until a domain is verified. Once verified, set
+`DELIVERY_FROM` (or reuse `CONTACT_FROM`) to an address on that domain and
+this starts working for real buyers with no other changes.
+
+If email delivery fails for any reason, the order's paid status is
+unaffected -- payment truth and email delivery are tracked as two separate
+fields (`status` and `filesSentAt`/`deliveryError`) precisely so a failed
+send never makes a paid order look unpaid, or blocks marking it paid.

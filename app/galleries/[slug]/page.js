@@ -56,6 +56,10 @@ export default function GalleryPage() {
         previewUrl: photo.previewUrl,
         priceCents: photo.priceCents ?? gallery.defaultPriceCents ?? 0,
         filename: photo.filename || "",
+        // Carried through to the order so a paid order can be delivered
+        // without a second Firestore read. Knowing this path grants nothing
+        // by itself -- storage.rules still requires the admin UID to read it.
+        originalPath: photo.originalPath || "",
       });
     },
     [add, remove, has, gallery]

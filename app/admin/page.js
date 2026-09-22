@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getDownloadURL, ref as storageRef } from "firebase/storage";
+import { auth, storage } from "@/lib/firebase";
 import { useAuth } from "@/components/providers";
 import { SignIn } from "@/components/signin";
 import { TagInput } from "@/components/taginput";
@@ -14,6 +15,7 @@ import {
   listAllGalleries,
   listAllOrders,
   listEnquiries,
+  recordDelivery,
   setEnquiryHandled,
   setOrderStatus,
   updateGallery,
@@ -384,6 +386,7 @@ function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sendingId, setSendingId] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -414,8 +417,85 @@ function OrdersTab() {
     try {
       await setOrderStatus(order.id, status);
       await refresh();
+      // Marking an order paid is the trigger the buyer is waiting on -- send
+      // the files right away. sendFiles records its own outcome, so a
+      // delivery failure never undoes the payment status just set above.
+      if (status === "paid") await sendFiles(order);
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  async function sendFiles(order) {
+    setSendingId(order.id);
+    setError("");
+    try {
+      const deliverable = (order.items || []).filter((i) => i.originalPath);
+
+      if (deliverable.length === 0) {
+        await recordDelivery(order.id, {
+          sent: false,
+          error: "This order predates file delivery -- send the photos by hand.",
+        });
+        await refresh();
+        return;
+      }
+
+      const links = [];
+      for (const item of deliverable) {
+        try {
+          const url = await getDownloadURL(storageRef(storage, item.originalPath));
+          links.push({ url, galleryTitle: item.galleryTitle, filename: item.filename });
+        } catch (e) {
+          console.error("Could not get a download URL for", item.originalPath, e);
+        }
+      }
+
+      if (links.length === 0) {
+        await recordDelivery(order.id, {
+          sent: false,
+          error: "Could not read the original files from Storage.",
+        });
+        await refresh();
+        return;
+      }
+
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch("/api/deliver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken,
+          buyerEmail: order.buyerEmail,
+          buyerName: order.buyerName,
+          orderRef: order.id.slice(0, 8).toUpperCase(),
+          items: links,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.ok && data.emailed) {
+        await recordDelivery(order.id, { sent: true });
+      } else if (res.ok && data.ok && data.reason === "not-configured") {
+        await recordDelivery(order.id, {
+          sent: false,
+          error: "Email is not set up yet -- no Resend key configured.",
+        });
+      } else {
+        await recordDelivery(order.id, {
+          sent: false,
+          error: "The delivery email did not send. Check the server log.",
+        });
+      }
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+      try {
+        await recordDelivery(order.id, { sent: false, error: e.message });
+        await refresh();
+      } catch {}
+    } finally {
+      setSendingId(null);
     }
   }
 
@@ -457,6 +537,7 @@ function OrdersTab() {
               <th>Total</th>
               <th>Placed</th>
               <th>Status</th>
+              <th>Files</th>
               <th />
             </tr>
           </thead>
@@ -496,14 +577,46 @@ function OrdersTab() {
                     {o.status}
                   </span>
                 </td>
+                <td>
+                  {o.status !== "paid" ? (
+                    <span className="muted small">—</span>
+                  ) : sendingId === o.id ? (
+                    <span className="muted small">Sending…</span>
+                  ) : o.filesSentAt ? (
+                    <>
+                      <span className="tag paid">Sent</span>
+                      <br />
+                      <span className="muted small">{formatDate(o.filesSentAt)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="tag pending">Not sent</span>
+                      {o.deliveryError && (
+                        <>
+                          <br />
+                          <span className="muted small">{o.deliveryError}</span>
+                        </>
+                      )}
+                    </>
+                  )}
+                </td>
                 <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   {o.status === "paid" ? (
-                    <button
-                      className="btn ghost small"
-                      onClick={() => mark(o, "pending")}
-                    >
-                      Mark unpaid
-                    </button>
+                    <>
+                      <button
+                        className="btn ghost small"
+                        disabled={sendingId === o.id}
+                        onClick={() => sendFiles(o)}
+                      >
+                        {o.filesSentAt ? "Resend files" : "Send files"}
+                      </button>{" "}
+                      <button
+                        className="btn ghost small"
+                        onClick={() => mark(o, "pending")}
+                      >
+                        Mark unpaid
+                      </button>
+                    </>
                   ) : (
                     <button className="btn small" onClick={() => mark(o, "paid")}>
                       Mark paid

@@ -45,6 +45,8 @@ export default function CheckoutPage() {
           galleryTitle: i.galleryTitle,
           previewUrl: i.previewUrl,
           priceCents: i.priceCents,
+          filename: i.filename || "",
+          originalPath: i.originalPath || "",
         })),
         subtotalCents,
       });
