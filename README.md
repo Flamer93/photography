@@ -44,13 +44,15 @@ deployed values.
 | `lib/db.js`                      | Firestore reads and writes                       |
 | `lib/jersey.js`                  | Jersey parsing, colours, filtering                |
 | `lib/vision.js`                  | Firebase AI Logic jersey detection                |
+| `components/jerseyrun.js`        | The shared AI detection run loop                  |
 
 ## Data model
 
 ```
 galleries/{id}                 title, slug, sport, dateOf, venue, description,
                                tags[], published, defaultPriceCents, coverUrl,
-                               photoCount, watermark, lowRes
+                               photoCount, watermark, lowRes,
+                               jerseysTaggedAt
 galleries/{id}/photos/{id}     previewUrl, previewPath, originalPath,
                                width, height, priceCents, filename,
                                watermarked, lowRes,
@@ -119,6 +121,15 @@ there is no index or query to deploy. Picking a number **and** a colour means
 "that number wearing that colour" -- one player has to satisfy both -- while
 several numbers, or several colours, read as OR.
 
+The **Find your player** bar lives on each game gallery, not on the gallery
+index -- jersey numbers only mean anything inside one game. Its search box
+narrows the chips rather than the photos, because a big game carries forty
+numbers and hunting through a wall of them is the thing the box is there to
+save you from. Enter picks the match when there is exactly one, so typing a
+number and hitting Enter is the whole interaction. A chip you have already
+picked stays on screen even when it does not match the search, or there would
+be no way to unpick it.
+
 ### Entering them
 
 Type them under each photo on the admin gallery page: `12 white`, Enter. The
@@ -130,7 +141,11 @@ right and the colour is what it got wrong.
 
 **Detect jerseys with AI** on the admin gallery page reads the photos that have
 no jerseys on them yet; **Re-read all** does the lot and overwrites manual
-entries. It runs in the admin's browser through Firebase AI Logic (Gemini
+entries. There is also a **Tag jerseys** button on each row of the dashboard
+Galleries table, so a night of games can be tagged without opening each one;
+the Jerseys column shows progress while it runs and reads "Tagged" afterwards.
+Both buttons drive the same loop (`components/jerseyrun.js`) so they cannot
+drift apart. Only one run happens at a time. It runs in the admin's browser through Firebase AI Logic (Gemini
 2.5 Flash), one photo at a time so the progress bar is honest and **Stop**
 genuinely stops. Three consecutive failures abort the run, because a setup or
 quota problem fails identically on every photo and there is no sense burning a

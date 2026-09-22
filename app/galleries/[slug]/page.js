@@ -20,6 +20,7 @@ export default function GalleryPage() {
   const [activeIndex, setActiveIndex] = useState(null);
   const [numbers, setNumbers] = useState([]);
   const [colors, setColors] = useState([]);
+  const [search, setSearch] = useState("");
 
   const { add, remove, has, items } = useCart();
 
@@ -34,6 +35,50 @@ export default function GalleryPage() {
 
   const filtering = numbers.length > 0 || colors.length > 0;
 
+  // The search box narrows the chips rather than the photos. A big game can
+  // carry forty numbers, and hunting for one in a wall of chips is the thing
+  // this is meant to save you from. An already-picked chip always stays on
+  // screen even when it does not match, or there would be no way to unpick it.
+  const shown = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return { ...facets, matched: true };
+    let hits = 0;
+    const keep = (list, active) =>
+      list.filter((f) => {
+        const isHit = f.value.toLowerCase().includes(term);
+        if (isHit) hits += 1;
+        return isHit || active.includes(f.value);
+      });
+    const result = {
+      numbers: keep(facets.numbers, numbers),
+      colors: keep(facets.colors, colors),
+    };
+    // Counted separately from the lists, because a pinned selection would
+    // otherwise make a search that found nothing look like a search that
+    // found something.
+    return { ...result, matched: hits > 0 };
+  }, [facets, search, numbers, colors]);
+
+  // Enter picks the match when there is exactly one, so typing a number and
+  // hitting Enter is the whole interaction.
+  function onSearchKeyDown(e) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const hits = [
+      ...shown.numbers
+        .filter((f) => !numbers.includes(f.value))
+        .map((f) => ["number", f.value]),
+      ...shown.colors
+        .filter((f) => !colors.includes(f.value))
+        .map((f) => ["color", f.value]),
+    ];
+    if (hits.length !== 1) return;
+    const [kind, value] = hits[0];
+    if (kind === "number") toggleFacet(numbers, setNumbers, value);
+    else toggleFacet(colors, setColors, value);
+    setSearch("");
+  }
+
   function toggleFacet(list, setList, value) {
     setActiveIndex(null);
     setList(
@@ -45,6 +90,7 @@ export default function GalleryPage() {
     setActiveIndex(null);
     setNumbers([]);
     setColors([]);
+    setSearch("");
   }
 
   useEffect(() => {
@@ -180,9 +226,20 @@ export default function GalleryPage() {
                 Find your player
               </p>
 
-              {facets.colors.length > 0 && (
+              <input
+                type="search"
+                className="filter-search"
+                style={{ marginBottom: 12 }}
+                placeholder="Jersey number or colour…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={onSearchKeyDown}
+                aria-label="Search jersey numbers and colours"
+              />
+
+              {shown.colors.length > 0 && (
                 <div className="filter-tags" style={{ marginBottom: 10 }}>
-                  {facets.colors.map(({ value, count }) => (
+                  {shown.colors.map(({ value, count }) => (
                     <button
                       key={value}
                       className={`filter-chip ${
@@ -203,9 +260,9 @@ export default function GalleryPage() {
                 </div>
               )}
 
-              {facets.numbers.length > 0 && (
+              {shown.numbers.length > 0 && (
                 <div className="filter-tags">
-                  {facets.numbers.map(({ value, count }) => (
+                  {shown.numbers.map(({ value, count }) => (
                     <button
                       key={value}
                       className={`filter-chip jersey-number ${
@@ -220,6 +277,12 @@ export default function GalleryPage() {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {!shown.matched && (
+                <p className="muted small" style={{ margin: "4px 0 0" }}>
+                  No jersey matches “{search.trim()}”.
+                </p>
               )}
 
               {filtering && (

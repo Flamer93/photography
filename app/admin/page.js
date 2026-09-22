@@ -8,6 +8,7 @@ import { auth, storage } from "@/lib/firebase";
 import { useAuth } from "@/components/providers";
 import { SignIn } from "@/components/signin";
 import { TagInput } from "@/components/taginput";
+import { useJerseyRun } from "@/components/jerseyrun";
 import {
   createGallery,
   deleteDeliveryGallery,
@@ -17,11 +18,13 @@ import {
   listAllGalleries,
   listAllOrders,
   listEnquiries,
+  listPhotos,
   recordDelivery,
   saveDeliveryGallery,
   setEnquiryHandled,
   setOrderStatus,
   updateGallery,
+  updatePhoto,
 } from "@/lib/db";
 import {
   formatDate,
@@ -144,6 +147,7 @@ function GalleriesTab() {
   const [tags, setTags] = useState([]);
   const [price, setPrice] = useState("15");
   const [busy, setBusy] = useState(false);
+  const ai = useJerseyRun();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -213,6 +217,51 @@ function GalleriesTab() {
     }
   }
 
+  // Reads every untagged photo in one game and writes the jersey numbers and
+  // colours back. The same run as the gallery editor's button, put here so a
+  // night's worth of games can be tagged without opening each one.
+  async function tagGame(g) {
+    setError("");
+    let photos;
+    try {
+      photos = await listPhotos(g.id);
+    } catch (e) {
+      setError(e.message);
+      return;
+    }
+
+    const targets = photos.filter((p) => (p.players || []).length === 0);
+    if (targets.length === 0) {
+      setError(
+        photos.length === 0
+          ? `"${g.title}" has no photos yet.`
+          : `Every photo in "${g.title}" already has jerseys on it.`
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Read jerseys in ${targets.length} photo${
+          targets.length === 1 ? "" : "s"
+        } from "${g.title}"?`
+      )
+    ) {
+      return;
+    }
+
+    const { done, failed } = await ai.run(targets, {
+      key: g.id,
+      onPhoto: (photo, players) =>
+        updatePhoto(g.id, photo.id, { players, playersSource: "ai" }),
+    });
+
+    if (done > failed) {
+      await updateGallery(g.id, { jerseysTaggedAt: new Date() });
+      await refresh();
+    }
+  }
+
   async function remove(g) {
     if (
       !window.confirm(
@@ -246,6 +295,7 @@ function GalleriesTab() {
                 <th>Teams</th>
                 <th>Date</th>
                 <th>Photos</th>
+                <th>Jerseys</th>
                 <th>Status</th>
                 <th />
               </tr>
@@ -278,12 +328,44 @@ function GalleriesTab() {
                   </td>
                   <td className="muted small">{formatDate(g.dateOf)}</td>
                   <td>{g.photoCount || 0}</td>
+                  <td className="muted small">
+                    {ai.state.running && ai.state.key === g.id ? (
+                      <>
+                        {ai.state.done}/{ai.state.total}
+                        {ai.state.failed > 0
+                          ? ` — ${ai.state.failed} failed`
+                          : ""}
+                      </>
+                    ) : g.jerseysTaggedAt ? (
+                      <span
+                        className="tag paid"
+                        title={`Read by AI on ${formatDate(g.jerseysTaggedAt)}`}
+                      >
+                        Tagged
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td>
                     <span className={`tag ${g.published ? "paid" : ""}`}>
                       {g.published ? "Live" : "Draft"}
                     </span>
                   </td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    {ai.state.running && ai.state.key === g.id ? (
+                      <button className="btn ghost small" onClick={ai.stop}>
+                        Stop
+                      </button>
+                    ) : (
+                      <button
+                        className="btn ghost small"
+                        disabled={ai.state.running || !g.photoCount}
+                        onClick={() => tagGame(g)}
+                      >
+                        Tag jerseys
+                      </button>
+                    )}{" "}
                     <button
                       className="btn ghost small"
                       onClick={() => togglePublished(g)}
@@ -298,6 +380,18 @@ function GalleriesTab() {
               ))}
             </tbody>
           </table>
+        )}
+        {ai.error && (
+          <div className="notice error" style={{ marginTop: 18 }}>
+            {ai.error}
+            <button
+              className="btn ghost small"
+              style={{ marginLeft: 12 }}
+              onClick={ai.clearError}
+            >
+              Dismiss
+            </button>
+          </div>
         )}
         {error && (
           <div className="notice error" style={{ marginTop: 18 }}>

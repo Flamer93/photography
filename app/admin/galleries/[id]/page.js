@@ -24,7 +24,7 @@ import {
 import { buildPreview, readableSize } from "@/lib/images";
 import { formatPrice, parsePriceToCents } from "@/lib/format";
 import { normalizePlayers } from "@/lib/jersey";
-import { describeAiError, detectPlayers } from "@/lib/vision";
+import { useJerseyRun } from "@/components/jerseyrun";
 
 // Keeps a filename safe to sit inside a Content-Disposition header: no quotes,
 // no line breaks, plain ASCII. Anything else is replaced rather than dropped so
@@ -50,12 +50,13 @@ export default function AdminGalleryPage() {
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef(null);
 
-  // AI jersey detection runs one photo at a time so progress is honest and a
-  // stop actually stops. The ref is what the loop checks -- state would be a
-  // stale closure by the time the next photo comes round.
-  const [ai, setAi] = useState({ running: false, done: 0, total: 0, failed: 0 });
-  const [aiError, setAiError] = useState("");
-  const stopAi = useRef(false);
+  const {
+    state: ai,
+    error: aiError,
+    run: runAi,
+    stop: stopAi,
+    clearError: clearAiError,
+  } = useJerseyRun();
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -246,10 +247,7 @@ export default function AdminGalleryPage() {
         ? photos
         : photos.filter((p) => (p.players || []).length === 0);
 
-    if (targets.length === 0) {
-      setAiError("Every photo already has jerseys on it.");
-      return;
-    }
+    if (targets.length === 0) return;
 
     if (
       scope === "all" &&
@@ -260,40 +258,12 @@ export default function AdminGalleryPage() {
       return;
     }
 
-    stopAi.current = false;
-    setAiError("");
-    setAi({ running: true, done: 0, total: targets.length, failed: 0 });
+    const { done, failed } = await runAi(targets, {
+      onPhoto: (photo, players) => savePlayers(photo, players, "ai"),
+    });
 
-    let done = 0;
-    let failed = 0;
-    let firstFailure = "";
-
-    for (const photo of targets) {
-      if (stopAi.current) break;
-      try {
-        const players = await detectPlayers(photo);
-        await savePlayers(photo, players, "ai");
-      } catch (e) {
-        failed += 1;
-        if (!firstFailure) firstFailure = describeAiError(e);
-        // A setup or quota problem fails identically on every photo, so
-        // burning through the whole gallery to prove it wastes the admin's
-        // time and their quota. Three strikes and stop.
-        if (failed >= 3) {
-          stopAi.current = true;
-        }
-      }
-      done += 1;
-      setAi({ running: true, done, total: targets.length, failed });
-    }
-
-    setAi({ running: false, done, total: targets.length, failed });
-    if (firstFailure) {
-      setAiError(
-        failed === done
-          ? firstFailure
-          : `${failed} of ${done} photos failed — ${firstFailure}`
-      );
+    if (done > failed) {
+      await updateGallery(id, { jerseysTaggedAt: new Date() });
     }
   }
 
@@ -466,11 +436,9 @@ export default function AdminGalleryPage() {
           ai={ai}
           error={aiError}
           onRun={runDetection}
-          onStop={() => {
-            stopAi.current = true;
-          }}
+          onStop={stopAi}
           onClear={clearAllPlayers}
-          onDismissError={() => setAiError("")}
+          onDismissError={clearAiError}
         />
       )}
 
