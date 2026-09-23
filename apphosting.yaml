@@ -96,8 +96,15 @@ env:
   # is public by design -- it identifies the site to reCAPTCHA; the secret half
   # never leaves Google. Registered to homick-flicks-ai, so it only works for
   # that project.
-  - variable: NEXT_PUBLIC_AI_RECAPTCHA_SITE_KEY
-    value: 6LfY4cktAAAAAF1radg-bovG4TgDC-qwF-4pbw_x
-    availability:
-      - BUILD
-      - RUNTIME
+  # Left unset on purpose. The key is valid and reCAPTCHA issues tokens for
+  # this domain, but Firebase cannot exchange them -- CreateAssessment is
+  # refused for the pairing of this key and this project, unresolved as of
+  # 2026-09-23. With the variable set, App Check initializes, fails to get a
+  # token, and takes the AI button down with it; unset, the code path is
+  # skipped entirely and detection works as it did before. Put the value back
+  # the moment the exchange succeeds.
+  # - variable: NEXT_PUBLIC_AI_RECAPTCHA_SITE_KEY
+  #   value: 6LfY4cktAAAAAF1radg-bovG4TgDC-qwF-4pbw_x
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
