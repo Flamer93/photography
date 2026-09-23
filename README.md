@@ -166,8 +166,11 @@ different place:
 2. A CORS policy on the Storage bucket -- see **Storage CORS** below. Without
    it the browser cannot read the photo at all and detection fails before the
    model is ever called.
-3. Gemini credit on the project, at <https://ai.studio/projects>. With none,
-   every call comes back 429 "prepayment credits are depleted".
+3. Gemini credit on whichever project makes the calls, at
+   <https://ai.studio/projects>. With none, every call comes back 429
+   "prepayment credits are depleted".
+4. App Check registered on that same project, if a reCAPTCHA site key is
+   configured -- see **App Check on the AI project** below.
 
 **The model name is not forever.** Google retires them: `gemini-2.5-flash`
 stopped being available to new projects mid-flight, and the API answered with a
@@ -225,6 +228,46 @@ is excluded, and what gets sent here is photographs of other people's children.
 That is a real decision, not a formality. The paid alternative is credit on the
 main project at <https://ai.studio/projects>, minimum $5, and no second project
 at all.
+
+### App Check on the AI project
+
+The AI project's Firebase config ships in the browser bundle -- it has to, the
+model call is made from the client. Without App Check, anyone who reads the JS
+can spend that project's Gemini budget. App Check has reCAPTCHA Enterprise
+score the browser and attaches a token the API checks.
+
+`NEXT_PUBLIC_AI_RECAPTCHA_SITE_KEY` holds the site key. A site key is public by
+design -- it identifies the site to reCAPTCHA and the secret half never leaves
+Google -- and it belongs to **one project**, so it must be a key created in the
+same project as `NEXT_PUBLIC_AI_FIREBASE_PROJECT_ID`. A key from the other
+project fails with an App Check error that looks like a code bug and is not.
+
+**Initialized on first use, not on import.** `ensureAppCheck()` in
+`lib/firebase.js` runs the first time a detection call needs it. Doing it at
+import would pull reCAPTCHA into every buyer's browser on every page -- slower,
+and third-party scoring of visitors who are only looking at photos. Nothing
+else in this app is App Check enforced, so no token needs to be sitting ready.
+A failure there is logged and swallowed: the galleries, cart and checkout must
+not break because reCAPTCHA had a bad day, and the AI call reports its own App
+Check error properly.
+
+**There is no reCAPTCHA `<script>` tag in this app, deliberately.**
+`initializeAppCheck` loads reCAPTCHA itself. Google's generic "add this to your
+`<head>`" snippet is for using reCAPTCHA directly, and pasting it in as well
+just loads the library twice.
+
+Console setup, in the AI project, **in this order**:
+
+1. **Build > App Check > Apps**, register the web app, provider **reCAPTCHA
+   Enterprise**, paste the same site key.
+2. Make sure the reCAPTCHA key's allowed domains include the live host.
+3. Only then **App Check > APIs > Firebase AI Logic > Enforce**. Enforcing
+   before step 1 breaks every call.
+
+For `npm run dev`: localhost cannot be scored by reCAPTCHA, so in development
+the SDK prints an App Check debug token to the browser console. Paste it into
+**App Check > Apps > Manage debug tokens**. Each browser gets its own, and the
+whole branch is compiled out of the production bundle.
 
 ## Storage CORS
 

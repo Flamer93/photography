@@ -91,3 +91,13 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # reCAPTCHA Enterprise site key for App Check on the AI project. A site key
+  # is public by design -- it identifies the site to reCAPTCHA; the secret half
+  # never leaves Google. Registered to homick-flicks-ai, so it only works for
+  # that project.
+  - variable: NEXT_PUBLIC_AI_RECAPTCHA_SITE_KEY
+    value: 6LfY4cktAAAAAF1radg-bovG4TgDC-qwF-4pbw_x
+    availability:
+      - BUILD
+      - RUNTIME
