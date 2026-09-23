@@ -282,8 +282,16 @@ main {
 /* ================================================================ hero === */
 
 .hero {
-  padding: clamp(48px, 8vw, 96px) 0 clamp(32px, 5vw, 64px);
+  padding: clamp(48px, 8vw, 96px) 0 clamp(24px, 3.5vw, 40px);
   border-bottom: 1px solid var(--line);
+}
+
+/* A hero already closes with its own padding and a rule under it. Giving the
+   section that follows a full section pad on top of that stacked two gaps into
+   one dead band -- about 180px of nothing between a gallery’s team tags and
+   its first photo, which pushed every image below the fold on a laptop. */
+.hero + .section {
+  padding-top: clamp(24px, 3.5vw, 44px);
 }
 
 .hero-inner {
