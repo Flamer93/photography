@@ -324,6 +324,20 @@ main {
   gap: 22px;
 }
 
+/* Destructive actions. Muted until hover so a red button is not sitting in
+   the corner of the eye the whole time, but unmistakable once reached for. */
+.btn.ghost.danger {
+  color: #e2766c;
+  border-color: rgba(226, 118, 108, 0.35);
+}
+
+.btn.ghost.danger:hover:not(:disabled) {
+  color: #fff;
+  background: #b3382e;
+  border-color: #b3382e;
+  opacity: 1;
+}
+
 /* =============================================================== cards === */
 
 .photo-card {

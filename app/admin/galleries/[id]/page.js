@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  deleteObject,
   getDownloadURL,
   ref as storageRef,
   uploadBytes,
@@ -16,6 +17,7 @@ import { JerseyInput } from "@/components/jerseyinput";
 import {
   addPhoto,
   deletePhoto,
+  deletePhotos,
   getGallery,
   listPhotos,
   updateGallery,
@@ -25,6 +27,39 @@ import { buildPreview, readableSize } from "@/lib/images";
 import { formatPrice, parsePriceToCents } from "@/lib/format";
 import { normalizePlayers } from "@/lib/jersey";
 import { useJerseyRun } from "@/components/jerseyrun";
+
+// A few at a time: one request per file is slow enough on a 300-photo game to
+// look hung, and all of them at once makes the browser queue them anyway.
+const DELETE_CONCURRENCY = 6;
+
+// Removes the image files behind a set of photos. Missing paths are skipped --
+// anything uploaded before originalPath/previewPath existed simply has none --
+// and a file that is already gone is not an error, because the point is that
+// it should not be there.
+async function deleteStoredFiles(rows, onProgress) {
+  const paths = [];
+  for (const photo of rows) {
+    if (photo.originalPath) paths.push(photo.originalPath);
+    if (photo.previewPath) paths.push(photo.previewPath);
+  }
+
+  let done = 0;
+  for (let i = 0; i < paths.length; i += DELETE_CONCURRENCY) {
+    await Promise.all(
+      paths.slice(i, i + DELETE_CONCURRENCY).map(async (path) => {
+        try {
+          await deleteObject(storageRef(storage, path));
+        } catch (err) {
+          if (err?.code !== "storage/object-not-found") throw err;
+        }
+      })
+    );
+    done = Math.min(paths.length, i + DELETE_CONCURRENCY);
+    // Reported against photos rather than files so the number on screen
+    // matches the number the admin was asked to confirm.
+    onProgress?.(Math.round((done / paths.length) * rows.length));
+  }
+}
 
 // Keeps a filename safe to sit inside a Content-Disposition header: no quotes,
 // no line breaks, plain ASCII. Anything else is replaced rather than dropped so
@@ -48,6 +83,7 @@ export default function AdminGalleryPage() {
   const [error, setError] = useState("");
   const [queue, setQueue] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [wiping, setWiping] = useState({ running: false, done: 0, total: 0 });
   const fileInput = useRef(null);
 
   const {
@@ -286,13 +322,67 @@ export default function AdminGalleryPage() {
   async function removePhoto(photo) {
     if (!window.confirm(`Remove ${photo.filename || "this photo"}?`)) return;
     try {
+      await deleteStoredFiles([photo]);
       await deletePhoto(id, photo.id);
       await updateGallery(id, {
         photoCount: Math.max(0, (gallery.photoCount || 1) - 1),
+        // The cover breaks if it was pointing at the preview just deleted.
+        ...(gallery.coverUrl && gallery.coverUrl === photo.previewUrl
+          ? { coverUrl: "" }
+          : {}),
       });
       await refresh();
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  // Empties a whole gallery: the image files as well as the records. Asking
+  // for a typed word rather than an OK click is deliberate -- this throws away
+  // the full-resolution originals of an entire game, and the only way back is
+  // re-uploading them from the camera.
+  async function deleteAllPhotos() {
+    const count = photos.length;
+    if (count === 0) return;
+
+    const typed = window.prompt(
+      `Delete all ${count} photo${count === 1 ? "" : "s"} from "${
+        gallery.title
+      }"?\n\n` +
+        "This removes the previews AND the full-resolution originals from " +
+        "storage. It cannot be undone.\n\n" +
+        "Type DELETE to confirm:"
+    );
+    if (typed === null) return;
+    if (typed.trim().toUpperCase() !== "DELETE") {
+      setError("Not deleted — you need to type DELETE exactly.");
+      return;
+    }
+
+    setWiping({ running: true, done: 0, total: count });
+    setError("");
+
+    try {
+      await deleteStoredFiles(photos, (done) =>
+        setWiping({ running: true, done, total: count })
+      );
+      await deletePhotos(
+        id,
+        photos.map((p) => p.id)
+      );
+
+      const coverWasAPhoto = photos.some((p) => p.previewUrl === gallery.coverUrl);
+      await updateGallery(id, {
+        photoCount: 0,
+        jerseysTaggedAt: null,
+        ...(coverWasAPhoto ? { coverUrl: "" } : {}),
+      });
+
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setWiping({ running: false, done: 0, total: 0 });
     }
   }
 
@@ -445,11 +535,38 @@ export default function AdminGalleryPage() {
       <div className="section-head">
         <h3>{photos.length} photos</h3>
         {photos.length > 0 && (
-          <button className="btn ghost small" onClick={applyPriceToAll}>
-            Set all prices
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              className="btn ghost small"
+              onClick={applyPriceToAll}
+              disabled={wiping.running}
+            >
+              Set all prices
+            </button>
+            <button
+              className="btn ghost small danger"
+              onClick={deleteAllPhotos}
+              disabled={wiping.running || uploading || ai.running}
+            >
+              {wiping.running
+                ? `Deleting ${wiping.done}/${wiping.total}…`
+                : "Delete all photos"}
+            </button>
+          </div>
         )}
       </div>
+
+      {wiping.running && (
+        <div className="progress" style={{ marginBottom: 20 }}>
+          <span
+            style={{
+              width: `${
+                wiping.total ? (wiping.done / wiping.total) * 100 : 0
+              }%`,
+            }}
+          />
+        </div>
+      )}
 
       {photos.length === 0 ? (
         <div className="empty-state">

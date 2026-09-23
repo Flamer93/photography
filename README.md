@@ -67,6 +67,25 @@ deliveries/{orderId}           items[], buyerName, orderRef, createdAt
 Storage: `previews/{galleryId}/{photoId}` and `covers/{galleryId}` are
 world-readable, `originals/{galleryId}/{photoId}` is admin-only.
 
+Storage rules split `create, update` from `delete`. They have to: a delete
+carries no `request.resource`, so a single `allow write` guarded by a
+content-type and size check denied every delete. That is why removing a photo
+used to leave its original in the bucket.
+
+### Deleting photos
+
+**Remove** on a photo, and **Delete all photos** on a gallery, both delete the
+preview and the original from Storage as well as the Firestore record. Delete
+all asks for the word DELETE to be typed rather than an OK click, because it
+throws away the full-resolution originals of a whole game and the only way
+back is re-uploading from the camera. It also clears `photoCount`,
+`jerseysTaggedAt`, and the cover if the cover was one of the deleted previews
+-- a separately uploaded cover survives.
+
+A file that is already gone is not treated as an error; a permission error is,
+and surfaces rather than being swallowed, so a rules problem cannot look like
+a successful delete.
+
 ### Preview settings
 
 Each gallery carries `watermark` and `lowRes` flags, toggled on the admin
