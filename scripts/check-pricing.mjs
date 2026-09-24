@@ -31,7 +31,23 @@ const CASES = [
       "so the change is visible if it drifts again.",
     input: { location: "Elmvale", players: 12, photosPerPlayer: 3 },
     travelKm: 15,
-    expect: 13000,
+    expect: 12500,
+  },
+];
+
+// Roster size has to matter. The two anchors are both 15-player jobs, so
+// nothing in them pins down what a big team costs -- this does.
+const SHAPE = [
+  {
+    why: "30 local players costs meaningfully more than 15, not marginally",
+    check: () => {
+      const small = computeQuote({ players: 15, photosPerPlayer: 3 }, { travelKm: 0 });
+      const big = computeQuote({ players: 30, photosPerPlayer: 3 }, { travelKm: 0 });
+      // Twice the roster is not twice the price -- one drive, one setup --
+      // but it should be a good deal more than half again.
+      const ratio = big.totalCents / small.totalCents;
+      return ratio > 1.7 && ratio < 2;
+    },
   },
 ];
 
@@ -80,7 +96,7 @@ for (const c of CASES) {
   );
 }
 
-for (const i of INVARIANTS) {
+for (const i of [...SHAPE, ...INVARIANTS]) {
   const ok = Boolean(i.check());
   if (!ok) failed += 1;
   console.log(`${ok ? "PASS" : "FAIL"}  — ${i.why}`);

@@ -352,13 +352,19 @@ The card is fitted to two prices Noah has actually named:
 Barrie,  ~45km, 15 players, 3 each  ->  $175   (quoted and agreed)
 Midland,    0km, 15 players, 3 each  ->  $135   (what he would charge)
 
-base 60 + (15 x 5)                   =  135   local
-base 60 + (15 x 5) + ((45 - 5) x 1)  =  175   Barrie
+base 30 + (15 x 7)                   =  135   local
+base 30 + (15 x 7) + ((45 - 5) x 1)  =  175   Barrie
 ```
 
 Those two fix the travel weight between them: the same roster costs $40 more
 once it is a 45km drive, which is why the card charges $1/km beyond the first
 5 rather than treating the drive as a rounding error.
+
+They do not fix the split between the session fee and the per-player rate,
+though -- both anchors are 15-player jobs, so any pair summing to $135 fits
+them and they only disagree about roster size. It is weighted towards the
+per-player rate on purpose: thirty players is closer to twice the work than
+to half again, and the booking minimum is what protects the small end.
 
 ```bash
 npm run check:pricing
