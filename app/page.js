@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HEADLINE_SPORTS } from "@/lib/sports";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -36,10 +37,9 @@ export default function HomePage() {
             the same week. Find your game, find your shot, and take it home.
           </p>
           <div className="hero-meta">
-            <span>Hockey</span>
-            <span>Soccer</span>
-            <span>Football</span>
-            <span>Basketball</span>
+            {HEADLINE_SPORTS.map((s) => (
+              <span key={s}>{s}</span>
+            ))}
           </div>
           <div>
             <Link href="/galleries" className="btn accent">

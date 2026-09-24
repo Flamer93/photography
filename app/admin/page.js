@@ -9,23 +9,21 @@ import { useAuth } from "@/components/providers";
 import { SignIn } from "@/components/signin";
 import { TagInput } from "@/components/taginput";
 import { useJerseyRun } from "@/components/jerseyrun";
+import { SPORTS } from "@/lib/sports";
 import {
   createGallery,
   deleteDeliveryGallery,
   deleteEnquiry,
   deleteGallery,
   deleteOrder,
-  deleteQuoteRequest,
   listAllGalleries,
   listAllOrders,
   listEnquiries,
   listPhotos,
-  listQuoteRequests,
   recordDelivery,
   saveDeliveryGallery,
   setEnquiryHandled,
   setOrderStatus,
-  setQuoteHandled,
   updateGallery,
   updatePhoto,
 } from "@/lib/db";
@@ -125,18 +123,11 @@ export default function AdminPage() {
           >
             Messages
           </button>
-          <button
-            className={tab === "quotes" ? "is-active" : ""}
-            onClick={() => setTab("quotes")}
-          >
-            Quotes
-          </button>
         </div>
 
         {tab === "galleries" && <GalleriesTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "messages" && <MessagesTab />}
-        {tab === "quotes" && <QuotesTab />}
       </div>
     </section>
   );
@@ -429,7 +420,7 @@ function GalleriesTab() {
             value={sport}
             onChange={(e) => setSport(e.target.value)}
           >
-            {["Hockey", "Soccer", "Football", "Basketball", "Other"].map((s) => (
+            {SPORTS.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
@@ -813,153 +804,6 @@ function OrdersTab() {
 }
 
 /* ------------------------------------------------------------- messages -- */
-
-function QuotesTab() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      setRows(await listQuoteRequests());
-      setError("");
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  async function toggle(row) {
-    try {
-      await setQuoteHandled(row.id, !row.handled);
-      await refresh();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-
-  async function remove(row) {
-    if (!window.confirm(`Delete the quote for ${row.name || "this person"}?`))
-      return;
-    try {
-      await deleteQuoteRequest(row.id);
-      await refresh();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-
-  const open = rows.filter((r) => !r.handled).length;
-  const openValue = rows
-    .filter((r) => !r.handled)
-    .reduce((sum, r) => sum + (r.totalCents || 0), 0);
-
-  return (
-    <div>
-      <div className="stat-row">
-        <div className="stat">
-          <p className="eyebrow">Waiting on you</p>
-          <p className="stat-value">{open}</p>
-        </div>
-        <div className="stat">
-          <p className="eyebrow">If all confirmed</p>
-          <p className="stat-value">{formatPrice(openValue)}</p>
-        </div>
-        <div className="stat">
-          <p className="eyebrow">Total quotes</p>
-          <p className="stat-value">{rows.length}</p>
-        </div>
-      </div>
-
-      <h3 style={{ marginBottom: 8 }}>From the quote page</h3>
-      <p className="muted small" style={{ marginTop: 0, marginBottom: 18 }}>
-        These are estimates the site worked out, not bookings. Nothing is
-        agreed until you reply — and if a number looks wrong, the rate card
-        that produced it lives in <code>lib/pricing.js</code>.
-      </p>
-
-      {loading ? (
-        <p className="muted">Loading…</p>
-      ) : rows.length === 0 ? (
-        <div className="empty-state">
-          <p>No quotes yet.</p>
-        </div>
-      ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>From</th>
-              <th>Job</th>
-              <th>Quoted</th>
-              <th>Sent</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <strong>{r.name || "—"}</strong>
-                  <br />
-                  <a className="muted small" href={`mailto:${r.email}`}>
-                    {r.email}
-                  </a>
-                </td>
-                <td>
-                  <span className="muted small">
-                    {r.location || "—"}
-                    {r.travelKm ? ` — ${r.travelKm}km` : ""}
-                  </span>
-                  <br />
-                  <span className="muted small">
-                    {r.sport ? `${r.sport}, ` : ""}
-                    {r.players} players × {r.photosPerPlayer} photos
-                    {r.games > 1 ? ` × ${r.games} games` : ""}
-                    {r.teamPhoto ? ", team photo" : ""}
-                    {r.rush ? ", rush" : ""}
-                  </span>
-                  {r.notes && (
-                    <>
-                      <br />
-                      <span className="muted small">“{r.notes}”</span>
-                    </>
-                  )}
-                </td>
-                <td>
-                  <strong>{formatPrice(r.totalCents)}</strong>
-                </td>
-                <td className="muted small">{formatDate(r.createdAt)}</td>
-                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button className="btn ghost small" onClick={() => toggle(r)}>
-                    {r.handled ? "Reopen" : "Mark replied"}
-                  </button>{" "}
-                  <button
-                    className="btn ghost small danger"
-                    onClick={() => remove(r)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {error && (
-        <div className="notice error" style={{ marginTop: 18 }}>
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function MessagesTab() {
   const [rows, setRows] = useState([]);

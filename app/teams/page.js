@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HEADLINE_SPORTS } from "@/lib/sports";
 
 const INCLUDED = [
   ["Game-day photography", "Full coverage, start to final whistle."],
@@ -29,10 +30,9 @@ export default function TeamsPage() {
             just whoever happens to be near the puck.
           </p>
           <div className="hero-meta">
-            <span>Hockey</span>
-            <span>Soccer</span>
-            <span>Football</span>
-            <span>Basketball</span>
+            {HEADLINE_SPORTS.map((s) => (
+              <span key={s}>{s}</span>
+            ))}
           </div>
           <div>
             <Link href="/contact" className="btn accent">

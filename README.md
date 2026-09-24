@@ -346,18 +346,28 @@ twice is how a quote silently doubles.
 
 ### Calibration
 
-The card is fitted to one real job:
+The card is fitted to jobs priced by hand:
 
 ```
-Barrie, ~45km, 15 players, 3 photos each  ->  $175
-base 70 + (15 x 6) + ((45 - 20) x 0.60)   =   175
+Barrie,  ~45km, 15 players, 3 each  ->  $175   (quoted and agreed)
+Elmvale, ~15km, 12 players, 3 each  ->  $140   (confirmed)
+
+base 70 + (15 x 6) + ((45 - 20) x 0.60)  =  175
 ```
 
-**One data point cannot pin down four levers.** Several different cards hit
-$175 on that job and disagree wildly about a 40-player tournament an hour
-away. Check it against a few more real jobs before trusting it far from the
-anchor. The levers are all in `RATE_CARD` and the totals round to the nearest
-$5, because a quote reading $187 looks like it came from a spreadsheet.
+```bash
+npm run check:pricing
+```
+
+asserts both, plus a few invariants -- the minimum holds, the model cannot
+move a total more than `maxAdjustPct`, more players never costs less. Run it
+after touching `RATE_CARD`, and add a case whenever a real job is agreed.
+
+**Two points still do not pin down four levers.** Both sit close to home with
+small rosters, which is where the card is least likely to be wrong; a
+40-player tournament an hour away is extrapolation. Totals round to the
+nearest $5, because a quote reading $187 looks like it came from a
+spreadsheet.
 
 ### Why the model call is server-side
 

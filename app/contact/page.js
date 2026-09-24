@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createEnquiry } from "@/lib/db";
 import { SOCIALS } from "@/components/chrome";
 
@@ -20,8 +20,28 @@ export default function ContactPage() {
   const [team, setTeam] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fromQuote, setFromQuote] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+
+  // Arriving from /quote carries the estimate over as a written message, so
+  // the buyer does not retype what they just filled in and the numbers Noah
+  // reads are the numbers the site actually showed them.
+  //
+  // Read from window rather than useSearchParams: this page is otherwise
+  // static, and the hook would force it dynamic or need a Suspense boundary
+  // for no gain. It is also only ever a prefill -- whatever arrives lands in
+  // a textarea the sender can edit, and is length-capped by the same rules as
+  // anything else typed here.
+  useEffect(() => {
+    const carried = new URLSearchParams(window.location.search);
+    const quote = carried.get("quote");
+    if (quote) {
+      setMessage(quote.slice(0, 1500));
+      setFromQuote(true);
+    }
+    if (carried.get("reason") === "book") setReason(REASONS[0]);
+  }, []);
 
   async function submit(e) {
     e.preventDefault();
@@ -66,9 +86,9 @@ export default function ContactPage() {
             your game?
           </h1>
           <p className="lede">
-            I cover hockey, soccer, football and basketball around Midland and
-            the rest of Simcoe County. Send me the details and I will get back
-            to you.
+            {fromQuote
+              ? "Your quote is in the message below — add your name and email and send it over, and I will confirm the date."
+              : "I cover hockey, soccer, football and basketball around Midland and the rest of Simcoe County. Send me the details and I will get back to you."}
           </p>
         </div>
       </section>

@@ -2,10 +2,32 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { createQuoteRequest } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
+import { SPORTS } from "@/lib/sports";
 
-const SPORTS = ["Hockey", "Soccer", "Football", "Basketball", "Other"];
+// The quote is carried to the contact page as a ready-written message, so the
+// buyer does not retype what they just filled in and Noah gets the numbers
+// the site actually showed them -- rather than "you quoted me about 200?".
+function contactHref(quote) {
+  const i = quote.input;
+  const lines = [
+    `I got a quote of ${formatPrice(quote.totalCents)} on the site:`,
+    "",
+    `Arena or town: ${i.location || "—"}`,
+    `Sport: ${i.sport || "—"}`,
+    `Players: ${i.players}`,
+    `Photos per player: ${i.photosPerPlayer}`,
+    i.games > 1 ? `Games: ${i.games}` : null,
+    i.teamPhoto ? "Team photo: yes" : null,
+    i.rush ? "Next-day turnaround: yes" : null,
+    quote.travelKm ? `Travel: about ${quote.travelKm}km each way` : null,
+    i.notes ? `Notes: ${i.notes}` : null,
+    "",
+    "Can we book it in?",
+  ].filter(Boolean);
+
+  return `/contact?reason=book&quote=${encodeURIComponent(lines.join("\n"))}`;
+}
 
 export default function QuotePage() {
   const [location, setLocation] = useState("");
@@ -23,18 +45,10 @@ export default function QuotePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Contact details are only asked for once a price is on screen. Nobody
-  // wants to hand over an email to find out a number.
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
   async function getQuote(e) {
     e.preventDefault();
     setBusy(true);
     setError("");
-    setSent(false);
     try {
       const res = await fetch("/api/quote", {
         method: "POST",
@@ -66,34 +80,6 @@ export default function QuotePage() {
       setError("Couldn’t reach the server. Check your connection and try again.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function send(e) {
-    e.preventDefault();
-    setSending(true);
-    setError("");
-    try {
-      await createQuoteRequest({
-        name: name.trim(),
-        email: email.trim(),
-        location: quote.input.location,
-        sport: quote.input.sport,
-        players: quote.input.players,
-        photosPerPlayer: quote.input.photosPerPlayer,
-        games: quote.input.games,
-        rush: quote.input.rush,
-        teamPhoto: quote.input.teamPhoto,
-        notes: quote.input.notes,
-        travelKm: quote.travelKm,
-        totalCents: quote.totalCents,
-        lines: quote.lines,
-      });
-      setSent(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSending(false);
     }
   }
 
@@ -264,41 +250,19 @@ export default function QuotePage() {
                   </div>
                 )}
 
-                {sent ? (
-                  <div className="notice" style={{ marginTop: 16 }}>
-                    Sent. I will come back to you to confirm — usually same
-                    day. <Link href="/galleries">Browse galleries</Link> in the
-                    meantime.
-                  </div>
-                ) : (
-                  <form onSubmit={send} style={{ marginTop: 20 }}>
-                    <p className="muted small" style={{ marginTop: 0 }}>
-                      Happy with that? Send it over and I will confirm.
-                    </p>
-                    <div className="field">
-                      <label htmlFor="q-name">Your name</label>
-                      <input
-                        id="q-name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label htmlFor="q-email">Email</label>
-                      <input
-                        id="q-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <button className="btn" disabled={sending}>
-                      {sending ? "Sending…" : "Send this quote"}
-                    </button>
-                  </form>
-                )}
+                <div className="quote-next">
+                  <p className="muted small" style={{ marginTop: 0 }}>
+                    Happy with that? Get in touch and I will confirm the date —
+                    nothing is booked from this page.
+                  </p>
+                  <Link href={contactHref(quote)} className="btn accent">
+                    Book this in
+                  </Link>
+                  <p className="muted small" style={{ marginBottom: 0 }}>
+                    The details above come with you, so there is nothing to
+                    type again.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="panel">
