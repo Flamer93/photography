@@ -108,3 +108,22 @@ env:
   #   availability:
   #     - BUILD
   #     - RUNTIME
+
+  # Sending address for both the contact notification and the photo-delivery
+  # emails. Must be on a domain verified in Resend -- until then Resend only
+  # delivers to the account owner's own address, which is no use for sending a
+  # buyer their photos. Server-side only; there is nothing secret about it,
+  # but the browser has no reason to see it either.
+  #
+  # no-reply because nobody reads replies to it: both emails set reply_to
+  # separately, delivery to CONTACT_TO and the contact notification to
+  # whoever filled the form in.
+  - variable: CONTACT_FROM
+    value: Homick Flicks <no-reply@homickflicks.com>
+    availability:
+      - RUNTIME
+
+  - variable: DELIVERY_FROM
+    value: Homick Flicks <no-reply@homickflicks.com>
+    availability:
+      - RUNTIME

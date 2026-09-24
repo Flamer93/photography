@@ -426,9 +426,17 @@ The secret must exist **before** a push that references it, or the rollout
 fails. Without a key the route returns `emailed: false` and the form still
 works.
 
-Sending currently uses Resend's shared `onboarding@resend.dev` domain, which
-only delivers to the address the Resend account was created with. To send
-from a real address, verify a domain in Resend and set `CONTACT_FROM`.
+Both emails are sent from `no-reply@homickflicks.com`, set as `CONTACT_FROM`
+and `DELIVERY_FROM` in `apphosting.yaml`. Neither wants replies to the sending
+address: the contact notification sets `reply_to` to whoever filled the form
+in, and a delivery email sets it to `CONTACT_TO`.
+
+**That address only works once `homickflicks.com` is verified in Resend** --
+resend.com/domains, Add domain, then add the DNS records it gives you at
+Hover, where the domain is registered. Until it is, Resend refuses to send to
+anyone but the account owner and says so. With the variables unset the code
+falls back to Resend's shared `onboarding@resend.dev`, which has exactly the
+same restriction.
 
 ## File delivery
 
@@ -474,15 +482,12 @@ Account Token Creator" on itself -- a real but deliberately deferred piece of
 work, to avoid an IAM permission that is easy to misconfigure and hard to
 debug without live testing.
 
-**Known limitation -- Resend's shared sending domain only delivers to the
-account's own address.** Until `homick.com` (or a subdomain) is verified in
-Resend, delivery emails sent to any buyer other than the Resend account
-owner will likely be rejected or silently dropped by Resend, same as the
-contact-form notification email. Marking an order paid will still work and
-the links are still generated correctly; only the automatic email to a real
-buyer is blocked until a domain is verified. Once verified, set
-`DELIVERY_FROM` (or reuse `CONTACT_FROM`) to an address on that domain and
-this starts working for real buyers with no other changes.
+**Delivery depends on a verified sending domain.** `DELIVERY_FROM` is set to
+`no-reply@homickflicks.com`; until that domain is verified in Resend, Resend
+refuses to deliver to anyone but the account owner. Marking an order paid
+still works and the links are still generated correctly -- only the email to
+a real buyer is blocked, and the failure is reported to the admin rather than
+being silent.
 
 If email delivery fails for any reason, the order's paid status is
 unaffected -- payment truth and email delivery are tracked as two separate
