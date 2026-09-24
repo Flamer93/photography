@@ -36,6 +36,9 @@ deployed values.
 | `app/admin/`                     | Dashboard: galleries, orders, revenue            |
 | `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
 | `app/contact/`                   | Contact form, writes to `enquiries`              |
+| `app/quote/`                     | Shoot quote calculator                           |
+| `app/api/quote/route.js`         | Prices a shoot, server-side                      |
+| `lib/pricing.js`                 | Rate card and quote arithmetic                   |
 | `app/api/contact/route.js`       | Emails the admin when a message arrives          |
 | `app/api/deliver/route.js`       | Emails a buyer their files once paid             |
 | `app/download/[orderId]/`        | Buyer download page for larger orders            |
@@ -317,6 +320,63 @@ root does the same thing.
 It is a bucket setting, not part of a deploy -- `firebase deploy` does not
 touch it, and it survives every rollout. Adding a new origin (a custom domain,
 say) means editing `cors.json` and running the command again.
+
+## Shoot quotes
+
+`/quote` prices a shoot from details a buyer types in: arena, sport, roster
+size, photos per player, number of games, plus a team photo and rush
+turnaround. The number appears immediately, itemised, and contact details are
+only asked for once there is a price on screen -- nobody wants to hand over an
+email to find out a number. Sending it writes a `quotes` document; Admin >
+Quotes lists them.
+
+### The AI does not set the price
+
+`lib/pricing.js` does, from a rate card, so the same inputs always give the
+same number. That matters: a quote is a figure a customer holds you to, and a
+model asked to price a job directly will say $80 one morning and $400 the next
+for identical details.
+
+The model answers the one question the card genuinely cannot -- how far the
+named arena is from Midland -- and may apply a bounded adjustment
+(`maxAdjustPct`) for something in the notes the card does not model, like two
+teams in one visit. It is told not to adjust for players, photos, games,
+travel or the extras, because the card already charges for those and doing it
+twice is how a quote silently doubles.
+
+### Calibration
+
+The card is fitted to one real job:
+
+```
+Barrie, ~45km, 15 players, 3 photos each  ->  $175
+base 70 + (15 x 6) + ((45 - 20) x 0.60)   =   175
+```
+
+**One data point cannot pin down four levers.** Several different cards hit
+$175 on that job and disagree wildly about a 40-player tournament an hour
+away. Check it against a few more real jobs before trusting it far from the
+anchor. The levers are all in `RATE_CARD` and the totals round to the nearest
+$5, because a quote reading $187 looks like it came from a spreadsheet.
+
+### Why the model call is server-side
+
+`/quote` is public. A browser-side call would put the AI project's
+credentials in reach of anyone who opens devtools, and they would be spending
+a real prepaid balance. The route holds `GEMINI_API_KEY` server-side and rate
+limits per IP -- crude, since App Hosting can run several instances, but
+enough to stop one person holding down refresh.
+
+Without a key the page still works: it falls back to the distance table in
+`lib/pricing.js` and applies no adjustment. An unrecognised location quotes
+with no travel and says so, rather than inventing a drive.
+
+```bash
+firebase apphosting:secrets:set GEMINI_API_KEY
+```
+
+Create the key in AI Studio, on the same project that holds the Gemini
+credit. The secret must exist before a push that references it.
 
 ## Contact form
 

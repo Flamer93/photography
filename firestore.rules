@@ -69,6 +69,25 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Shoot quotes generated on /quote. Same shape of trust as enquiries:
+    // anyone may leave one, only the admin reads them back. The price fields
+    // are whatever the server route returned -- a buyer could post a made-up
+    // total, which is why the quote is a conversation starter and not an
+    // order. Nothing is charged from this collection.
+    match /quotes/{quoteId} {
+      allow create: if request.resource.data.handled == false
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 80
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() <= 120
+                    && request.resource.data.totalCents is int
+                    && request.resource.data.totalCents >= 0
+                    && request.resource.data.totalCents <= 10000000;
+
+      allow read, update, delete: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

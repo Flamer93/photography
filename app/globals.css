@@ -1349,6 +1349,76 @@ body::after {
   border-color: var(--accent);
 }
 
+/* =============================================================== quote === */
+
+.quote-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.checkline input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* Sticky so the number stays in view while the form above it is edited --
+   the whole point is watching the price move as you change the inputs. */
+.quote-result {
+  position: sticky;
+  top: 90px;
+}
+
+.quote-total {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  line-height: 1;
+  margin: 0 0 6px;
+  color: var(--accent);
+}
+
+.quote-lines {
+  list-style: none;
+  margin: 18px 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.quote-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+.quote-lines li span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .quote-result {
+    position: static;
+  }
+
+  .quote-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ============================================================= contact == */
 
 .contact-layout {
