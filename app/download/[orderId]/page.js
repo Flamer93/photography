@@ -7,6 +7,7 @@ import { getDeliveryGallery } from "@/lib/db";
 import {
   MAX_SHARE_FILES,
   canShareFiles,
+  isTouchDevice,
   shareToPhotos,
 } from "@/lib/saveimage";
 
@@ -26,7 +27,15 @@ export default function DownloadPage() {
   // Resolved on mount, not at module load: this file is rendered on the
   // server too, where there is no navigator to ask.
   const [canShare, setCanShare] = useState(false);
-  useEffect(() => setCanShare(canShareFiles()), []);
+  const [isTouch, setIsTouch] = useState(false);
+
+  // The full-resolution original shown for long-pressing. Null when closed.
+  const [pressItem, setPressItem] = useState(null);
+
+  useEffect(() => {
+    setCanShare(canShareFiles());
+    setIsTouch(isTouchDevice());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,8 +72,12 @@ export default function DownloadPage() {
   // download, because a failed share that leaves someone with nothing is a
   // worse outcome than a file in the wrong folder.
   async function savePhoto(item, index) {
+    // No file sharing, but a touchscreen: that is Chrome on iOS, where a
+    // download goes to Files and nothing a site does can redirect it. Show
+    // the original instead and let iOS save it from a long press.
     if (!canShare) {
-      saveOne(item);
+      if (isTouch) setPressItem(item);
+      else saveOne(item);
       return;
     }
     setBusyIndex(index);
@@ -76,9 +89,16 @@ export default function DownloadPage() {
         setNotice("Ready — tap Save to photos again and it will go straight through.");
       }
     } catch (err) {
-      console.error("Share failed, downloading instead:", err);
-      saveOne(item);
-      setNotice("Shared saving was not available, so it downloaded instead.");
+      console.error("Share failed:", err);
+      // On a phone a download is the wrong answer -- it lands in Files, which
+      // is the thing the person was trying to avoid. Long press works there
+      // whatever the browser.
+      if (isTouch) {
+        setPressItem(item);
+      } else {
+        saveOne(item);
+        setNotice("Shared saving was not available, so it downloaded instead.");
+      }
     } finally {
       setBusyIndex(null);
     }
@@ -187,6 +207,8 @@ export default function DownloadPage() {
           <p className="muted small" style={{ margin: 0 }}>
             {canShare
               ? "Tap Save Image when your phone asks, and they go straight to your camera roll."
+              : isTouch
+              ? "Download all puts them in your Files app. For your camera roll, tap a photo below, then press and hold it and choose Add to Photos."
               : "Your browser may ask permission to save several files at once — that is normal. You can also download them one at a time below."}
           </p>
           {notice && (
@@ -201,9 +223,15 @@ export default function DownloadPage() {
         <div className="wrap">
           <div className="download-grid">
             {gallery.items.map((item, i) => (
-              <div className="download-item" key={item.url || i}>
+              <div className="download-item" key={`${item.url}-${i}`}>
                 {item.previewUrl ? (
-                  <img src={item.previewUrl} alt="" loading="lazy" />
+                  <img
+                    src={item.previewUrl}
+                    alt=""
+                    loading="lazy"
+                    style={isTouch ? { cursor: "zoom-in" } : undefined}
+                    onClick={isTouch ? () => setPressItem(item) : undefined}
+                  />
                 ) : (
                   <div className="gallery-cover-empty">Photo {i + 1}</div>
                 )}
@@ -218,7 +246,7 @@ export default function DownloadPage() {
                   >
                     {busyIndex === i
                       ? "Saving…"
-                      : canShare
+                      : canShare || isTouch
                       ? "Save to photos"
                       : "Download"}
                   </button>
@@ -226,6 +254,14 @@ export default function DownloadPage() {
               </div>
             ))}
           </div>
+
+          {isTouch && (
+            <p className="muted small" style={{ marginTop: 28 }}>
+              On a phone, the surest way into your camera roll is to press and
+              hold the photo and choose <strong>Add to Photos</strong>. Tap any
+              photo above to open it full size for that.
+            </p>
+          )}
 
           <p className="muted small" style={{ marginTop: 28 }}>
             The thumbnails above are the watermarked previews — the files you
@@ -237,6 +273,35 @@ export default function DownloadPage() {
           </p>
         </div>
       </section>
+
+      {pressItem && (
+        <div className="lightbox" onClick={() => setPressItem(null)}>
+          <button
+            className="lightbox-close"
+            aria-label="Close"
+            onClick={() => setPressItem(null)}
+          >
+            ×
+          </button>
+          <div onClick={(e) => e.stopPropagation()}>
+            {/* The original, not the preview: a long press saves the bytes
+                this img was loaded from, so showing the watermarked version
+                here would put the watermarked version in their camera roll. */}
+            <img src={pressItem.url} alt={pressItem.galleryTitle || "Your photo"} />
+            <div className="lightbox-bar">
+              <span className="muted small">
+                Press and hold the photo, then <strong>Add to Photos</strong>.
+              </span>
+              <button
+                className="btn ghost small"
+                onClick={() => setPressItem(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
