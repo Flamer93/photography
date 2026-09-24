@@ -481,6 +481,13 @@ arriving as application/octet-stream gets no "Save Image" at all, so
 lib/saveimage.js forces image/jpeg when Storage does not give a usable type.
 Fetching the bytes is also why the bucket CORS policy is load-bearing here.
 
+iOS requires navigator.share to be called while the tap that triggered it is
+still live, and awaiting a multi-megabyte fetch first can outlast that -- it
+then rejects with NotAllowedError even though nothing is actually wrong.
+Fetched files are cached for exactly this: that rejection asks for a second
+tap rather than giving up, and the second tap shares instantly, inside its
+own activation, with nothing left to download.
+
 Everything else falls back to an ordinary download, including desktop, which
 has no file sharing and no camera roll to want. A share that fails downloads
 instead and says so; a share the person cancels does nothing and says

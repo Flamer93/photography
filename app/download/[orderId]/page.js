@@ -72,6 +72,9 @@ export default function DownloadPage() {
     try {
       const result = await shareToPhotos([item]);
       if (result === "shared") setNotice("Saved — check your Photos app.");
+      if (result === "tap-again") {
+        setNotice("Ready — tap Save to photos again and it will go straight through.");
+      }
     } catch (err) {
       console.error("Share failed, downloading instead:", err);
       saveOne(item);
@@ -92,6 +95,11 @@ export default function DownloadPage() {
         try {
           const result = await shareToPhotos(gallery.items);
           if (result === "shared") setNotice("Saved — check your Photos app.");
+          if (result === "tap-again") {
+            setNotice(
+              "Photos ready — tap Save all to photos again and they will go straight through."
+            );
+          }
           return;
         } catch (err) {
           console.error("Share failed, downloading instead:", err);
