@@ -469,6 +469,23 @@ to be set at upload time -- the HTML `download` attribute is ignored
 cross-origin. **This only applies to photos uploaded after this change;**
 anything already in Storage will still open in a tab rather than download.
 
+**Saving to a camera roll.** No browser will write to Photos or Gallery from
+a web page, and on iOS a plain download always lands in Files. The share
+sheet is the way in: hand the OS an image file and iOS offers "Save Image",
+which puts it in Photos. So where the browser can share files the page
+fetches the bytes, wraps them in a File and calls navigator.share -- one
+share for the whole order, since iOS then offers "Save N Images".
+
+The MIME type matters: iOS decides what the sheet offers from it, and a file
+arriving as application/octet-stream gets no "Save Image" at all, so
+lib/saveimage.js forces image/jpeg when Storage does not give a usable type.
+Fetching the bytes is also why the bucket CORS policy is load-bearing here.
+
+Everything else falls back to an ordinary download, including desktop, which
+has no file sharing and no camera roll to want. A share that fails downloads
+instead and says so; a share the person cancels does nothing and says
+nothing, because changing your mind is not an error.
+
 Download all fires the saves in sequence, 500ms apart. Browsers typically
 ask permission before saving several files at once -- that prompt is
 expected browser behaviour, not a fault.

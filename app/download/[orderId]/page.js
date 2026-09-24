@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getDeliveryGallery } from "@/lib/db";
+import {
+  MAX_SHARE_FILES,
+  canShareFiles,
+  shareToPhotos,
+} from "@/lib/saveimage";
 
 // Downloads are staggered so the browser treats them as a queue rather than a
 // burst. Most browsers still ask permission before saving several files at
@@ -15,6 +20,13 @@ export default function DownloadPage() {
   const [gallery, setGallery] = useState(null);
   const [state, setState] = useState("loading");
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [busyIndex, setBusyIndex] = useState(null);
+  const [notice, setNotice] = useState("");
+
+  // Resolved on mount, not at module load: this file is rendered on the
+  // server too, where there is no navigator to ask.
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(canShareFiles()), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,9 +59,46 @@ export default function DownloadPage() {
     a.remove();
   }
 
+  // One photo, into Photos if the phone can do it. Falls back silently to a
+  // download, because a failed share that leaves someone with nothing is a
+  // worse outcome than a file in the wrong folder.
+  async function savePhoto(item, index) {
+    if (!canShare) {
+      saveOne(item);
+      return;
+    }
+    setBusyIndex(index);
+    setNotice("");
+    try {
+      const result = await shareToPhotos([item]);
+      if (result === "shared") setNotice("Saved — check your Photos app.");
+    } catch (err) {
+      console.error("Share failed, downloading instead:", err);
+      saveOne(item);
+      setNotice("Shared saving was not available, so it downloaded instead.");
+    } finally {
+      setBusyIndex(null);
+    }
+  }
+
   async function saveAll() {
     setDownloadingAll(true);
+    setNotice("");
     try {
+      // iOS offers "Save N Images" for a multi-file share, which is one tap
+      // for the whole order rather than one per photo. Capped because every
+      // file is held in memory at once.
+      if (canShare && gallery.items.length <= MAX_SHARE_FILES) {
+        try {
+          const result = await shareToPhotos(gallery.items);
+          if (result === "shared") setNotice("Saved — check your Photos app.");
+          return;
+        } catch (err) {
+          console.error("Share failed, downloading instead:", err);
+          setNotice("Shared saving was not available, so they downloaded instead.");
+        }
+      }
+
       for (const item of gallery.items) {
         saveOne(item);
         await new Promise((r) => setTimeout(r, STAGGER_MS));
@@ -120,13 +169,23 @@ export default function DownloadPage() {
               onClick={saveAll}
               disabled={downloadingAll}
             >
-              {downloadingAll ? "Starting downloads…" : "Download all"}
+              {downloadingAll
+                ? "Saving…"
+                : canShare
+                ? "Save all to photos"
+                : "Download all"}
             </button>
           </div>
           <p className="muted small" style={{ margin: 0 }}>
-            Your browser may ask permission to save several files at once — that
-            is normal. You can also download them one at a time below.
+            {canShare
+              ? "Tap Save Image when your phone asks, and they go straight to your camera roll."
+              : "Your browser may ask permission to save several files at once — that is normal. You can also download them one at a time below."}
           </p>
+          {notice && (
+            <p className="muted small" style={{ margin: 0 }}>
+              {notice}
+            </p>
+          )}
         </div>
       </section>
 
@@ -146,9 +205,14 @@ export default function DownloadPage() {
                   </span>
                   <button
                     className="btn ghost small"
-                    onClick={() => saveOne(item)}
+                    onClick={() => savePhoto(item, i)}
+                    disabled={busyIndex === i}
                   >
-                    Download
+                    {busyIndex === i
+                      ? "Saving…"
+                      : canShare
+                      ? "Save to photos"
+                      : "Download"}
                   </button>
                 </div>
               </div>
