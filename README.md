@@ -481,6 +481,19 @@ arriving as application/octet-stream gets no "Save Image" at all, so
 lib/saveimage.js forces image/jpeg when Storage does not give a usable type.
 Fetching the bytes is also why the bucket CORS policy is load-bearing here.
 
+On iOS the page shows no download buttons at all -- just the photos and
+three numbered steps: tap, press and hold, Add to Photos. A download there
+lands in the Files app, which is not where anyone wants their photos, and
+there is no bulk equivalent of a long press, so offering one would only be
+offering the wrong thing loudly. Everywhere else keeps the download button,
+because a download is the right answer there.
+
+Detection is specifically iOS, not touch. A Windows laptop with a touch panel
+reports touch points and a coarse pointer, but has no "Add to Photos" -- it
+would have been left with instructions that do nothing and no download button
+either. iPadOS 13+ presents itself as a Mac, so the touch points are what give
+it away.
+
 iOS requires navigator.share to be called while the tap that triggered it is
 still live, and awaiting a multi-megabyte fetch first can outlast that -- it
 then rejects with NotAllowedError even though nothing is actually wrong.

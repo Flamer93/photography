@@ -1419,6 +1419,53 @@ body::after {
   }
 }
 
+/* Saving a photo on a phone. There is no button here on purpose: a download
+   goes to the Files app, which is not where anyone wants their photos, and
+   a long press is the only route into a camera roll that every iOS browser
+   supports -- Chrome on iOS cannot share files at all. So the page teaches
+   the gesture instead of offering the wrong thing. */
+.save-steps {
+  counter-reset: step;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-width: 34ch;
+}
+
+.save-steps li {
+  position: relative;
+  padding-left: 34px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.save-steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.download-item.is-tappable {
+  cursor: pointer;
+}
+
+.download-item.is-tappable:active {
+  transform: scale(0.985);
+}
+
 /* ============================================================= contact == */
 
 .contact-layout {

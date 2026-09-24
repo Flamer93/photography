@@ -11,7 +11,12 @@ const SEEN_KEY = "nh-welcome-seen";
 
 // Pages that already handle sign-in themselves, or where a prompt would be
 // plain noise.
-const SKIP = ["/admin", "/signin", "/checkout", "/cart"];
+//
+// /download matters most: someone opening that link has already paid and is
+// there for one thing. Asking them to sign in to "make checkout quicker",
+// over the photos they just bought, is the worst possible moment for it --
+// and they may not have an account at all, since the link came by email.
+const SKIP = ["/admin", "/signin", "/checkout", "/cart", "/download"];
 
 export function WelcomePrompt() {
   const pathname = usePathname();

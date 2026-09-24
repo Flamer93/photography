@@ -7,7 +7,7 @@ import { getDeliveryGallery } from "@/lib/db";
 import {
   MAX_SHARE_FILES,
   canShareFiles,
-  isTouchDevice,
+  isIOS,
   shareToPhotos,
 } from "@/lib/saveimage";
 
@@ -27,14 +27,14 @@ export default function DownloadPage() {
   // Resolved on mount, not at module load: this file is rendered on the
   // server too, where there is no navigator to ask.
   const [canShare, setCanShare] = useState(false);
-  const [isTouch, setIsTouch] = useState(false);
+  const [onIOS, setOnIOS] = useState(false);
 
   // The full-resolution original shown for long-pressing. Null when closed.
   const [pressItem, setPressItem] = useState(null);
 
   useEffect(() => {
     setCanShare(canShareFiles());
-    setIsTouch(isTouchDevice());
+    setOnIOS(isIOS());
   }, []);
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function DownloadPage() {
     // download goes to Files and nothing a site does can redirect it. Show
     // the original instead and let iOS save it from a long press.
     if (!canShare) {
-      if (isTouch) setPressItem(item);
+      if (onIOS) setPressItem(item);
       else saveOne(item);
       return;
     }
@@ -93,7 +93,7 @@ export default function DownloadPage() {
       // On a phone a download is the wrong answer -- it lands in Files, which
       // is the thing the person was trying to avoid. Long press works there
       // whatever the browser.
-      if (isTouch) {
+      if (onIOS) {
         setPressItem(item);
       } else {
         saveOne(item);
@@ -191,26 +191,38 @@ export default function DownloadPage() {
             {count} {count === 1 ? "photo" : "photos"}, full resolution and
             without a watermark. Yours to keep, print and post.
           </p>
-          <div className="row">
-            <button
-              className="btn accent"
-              onClick={saveAll}
-              disabled={downloadingAll}
-            >
-              {downloadingAll
-                ? "Saving…"
-                : canShare
-                ? "Save all to photos"
-                : "Download all"}
-            </button>
-          </div>
-          <p className="muted small" style={{ margin: 0 }}>
-            {canShare
-              ? "Tap Save Image when your phone asks, and they go straight to your camera roll."
-              : isTouch
-              ? "Download all puts them in your Files app. For your camera roll, tap a photo below, then press and hold it and choose Add to Photos."
-              : "Your browser may ask permission to save several files at once — that is normal. You can also download them one at a time below."}
-          </p>
+          {/* On a phone there is deliberately no button here. A download goes
+              to Files, which is not where anyone wants their photos, and
+              there is no bulk equivalent of a long press -- so offering one
+              would only be offering the wrong thing loudly. */}
+          {!onIOS && (
+            <>
+              <div className="row">
+                <button
+                  className="btn accent"
+                  onClick={saveAll}
+                  disabled={downloadingAll}
+                >
+                  {downloadingAll ? "Saving…" : "Download all"}
+                </button>
+              </div>
+              <p className="muted small" style={{ margin: 0 }}>
+                Your browser may ask permission to save several files at once —
+                that is normal. You can also download them one at a time below.
+              </p>
+            </>
+          )}
+
+          {onIOS && (
+            <ol className="save-steps">
+              <li>Tap a photo to open it full size.</li>
+              <li>
+                Press and hold it, then choose <strong>Add to Photos</strong>.
+              </li>
+              <li>It is now in your camera roll. Back out and do the next.</li>
+            </ol>
+          )}
+
           {notice && (
             <p className="muted small" style={{ margin: 0 }}>
               {notice}
@@ -223,49 +235,56 @@ export default function DownloadPage() {
         <div className="wrap">
           <div className="download-grid">
             {gallery.items.map((item, i) => (
-              <div className="download-item" key={`${item.url}-${i}`}>
+              <div
+                className={`download-item${onIOS ? " is-tappable" : ""}`}
+                key={`${item.url}-${i}`}
+                onClick={onIOS ? () => setPressItem(item) : undefined}
+              >
                 {item.previewUrl ? (
                   <img
                     src={item.previewUrl}
                     alt=""
                     loading="lazy"
-                    style={isTouch ? { cursor: "zoom-in" } : undefined}
-                    onClick={isTouch ? () => setPressItem(item) : undefined}
+                    style={onIOS ? { cursor: "zoom-in" } : undefined}
+                    onClick={onIOS ? () => setPressItem(item) : undefined}
                   />
                 ) : (
                   <div className="gallery-cover-empty">Photo {i + 1}</div>
                 )}
                 <div className="download-item-body">
                   <span className="muted small">
-                    {item.galleryTitle || `Photo ${i + 1}`}
+                    {onIOS
+                      ? `Photo ${i + 1} — tap to save`
+                      : item.galleryTitle || `Photo ${i + 1}`}
                   </span>
-                  <button
-                    className="btn ghost small"
-                    onClick={() => savePhoto(item, i)}
-                    disabled={busyIndex === i}
-                  >
-                    {busyIndex === i
-                      ? "Saving…"
-                      : canShare || isTouch
-                      ? "Save to photos"
-                      : "Download"}
-                  </button>
+                  {!onIOS && (
+                    <button
+                      className="btn ghost small"
+                      onClick={() => savePhoto(item, i)}
+                      disabled={busyIndex === i}
+                    >
+                      {busyIndex === i
+                        ? "Saving…"
+                        : canShare
+                        ? "Save to photos"
+                        : "Download"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {isTouch && (
+          {onIOS && (
             <p className="muted small" style={{ marginTop: 28 }}>
-              On a phone, the surest way into your camera roll is to press and
-              hold the photo and choose <strong>Add to Photos</strong>. Tap any
-              photo above to open it full size for that.
+              Prefer them on a computer instead? Open this same link there and
+              you get a straight download.
             </p>
           )}
 
           <p className="muted small" style={{ marginTop: 28 }}>
-            The thumbnails above are the watermarked previews — the files you
-            download are the clean, full-resolution originals. Any trouble, just{" "}
+            The thumbnails above are the watermarked previews — what you save
+            is the clean, full-resolution original. Any trouble, just{" "}
             <Link href="/contact" style={{ color: "var(--accent)" }}>
               get in touch
             </Link>
