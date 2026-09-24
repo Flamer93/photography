@@ -19,10 +19,19 @@ const CASES = [
     expect: 17500,
   },
   {
-    why: "Elmvale, 12 players, 3 photos each — confirmed at $140",
+    why: "Midland, 15 players, 3 photos each — what Noah would charge locally",
+    input: { location: "Midland", players: 15, photosPerPlayer: 3 },
+    travelKm: 0,
+    expect: 13500,
+  },
+  {
+    why:
+      "Elmvale, 12 players, 3 each — derived, not quoted. Was confirmed at " +
+      "$140 under the old card; moved when the local price came down. Here " +
+      "so the change is visible if it drifts again.",
     input: { location: "Elmvale", players: 12, photosPerPlayer: 3 },
     travelKm: 15,
-    expect: 14000,
+    expect: 13000,
   },
 ];
 

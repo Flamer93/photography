@@ -346,14 +346,19 @@ twice is how a quote silently doubles.
 
 ### Calibration
 
-The card is fitted to jobs priced by hand:
+The card is fitted to two prices Noah has actually named:
 
 ```
 Barrie,  ~45km, 15 players, 3 each  ->  $175   (quoted and agreed)
-Elmvale, ~15km, 12 players, 3 each  ->  $140   (confirmed)
+Midland,    0km, 15 players, 3 each  ->  $135   (what he would charge)
 
-base 70 + (15 x 6) + ((45 - 20) x 0.60)  =  175
+base 60 + (15 x 5)                   =  135   local
+base 60 + (15 x 5) + ((45 - 5) x 1)  =  175   Barrie
 ```
+
+Those two fix the travel weight between them: the same roster costs $40 more
+once it is a 45km drive, which is why the card charges $1/km beyond the first
+5 rather than treating the drive as a rounding error.
 
 ```bash
 npm run check:pricing
