@@ -482,7 +482,12 @@ lib/saveimage.js forces image/jpeg when Storage does not give a usable type.
 Fetching the bytes is also why the bucket CORS policy is load-bearing here.
 
 On iOS the page shows no download buttons at all -- just the photos and
-three numbered steps: tap, press and hold, Add to Photos. A download there
+three numbered steps: tap, press and hold, Add to Photos. The first time
+someone opens a delivery link on an iPhone those steps also come up as a
+one-off dialog (components/savehelp.js), because the answer is a gesture
+rather than a button and a gesture nobody thinks to try on a web page. Once
+per device, not once per order: a parent buying a second game already knows.
+Dismissing it loses nothing, since the steps stay on the page underneath. A download there
 lands in the Files app, which is not where anyone wants their photos, and
 there is no bulk equivalent of a long press, so offering one would only be
 offering the wrong thing loudly. Everywhere else keeps the download button,

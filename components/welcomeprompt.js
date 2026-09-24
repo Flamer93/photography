@@ -38,7 +38,14 @@ export function WelcomePrompt() {
 
   useEffect(() => {
     if (!ready || user) return;
-    if (SKIP.some((prefix) => pathname.startsWith(prefix))) return;
+
+    // Close, not just decline to open. Otherwise a prompt raised on the
+    // gallery list stays up when someone moves to checkout or a delivery
+    // link, which are exactly the pages it is meant to stay out of.
+    if (SKIP.some((prefix) => pathname.startsWith(prefix))) {
+      setOpen(false);
+      return;
+    }
 
     let seen = false;
     try {

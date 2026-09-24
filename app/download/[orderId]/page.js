@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getDeliveryGallery } from "@/lib/db";
+import { SaveHelp } from "@/components/savehelp";
 import {
   MAX_SHARE_FILES,
   canShareFiles,
@@ -292,6 +293,8 @@ export default function DownloadPage() {
           </p>
         </div>
       </section>
+
+      <SaveHelp onIOS={onIOS} ready={state === "ready"} />
 
       {pressItem && (
         <div className="lightbox" onClick={() => setPressItem(null)}>
