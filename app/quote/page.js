@@ -1,9 +1,37 @@
-import { redirect } from "next/navigation";
+"use client";
 
-// The quote calculator lives on the contact page now, at the top, so a price
-// and the form that sends it are one page rather than two. This redirect
-// stays because /quote has been in the nav and may be in a link someone
-// saved -- a dead URL on a small site is a lost booking.
-export default function QuoteRedirect() {
-  redirect("/contact");
+import { useRouter } from "next/navigation";
+import { QuoteCalculator, quoteMessage } from "@/components/quotecalculator";
+
+export default function QuotePage() {
+  const router = useRouter();
+
+  // Accepting a price sends them to the contact form with the quote already
+  // written into the message. Two pages, but nothing to type twice.
+  function book(quote) {
+    const text = quoteMessage(quote);
+    router.push(`/contact?reason=book&quote=${encodeURIComponent(text)}`);
+  }
+
+  return (
+    <>
+      <section className="hero">
+        <div className="wrap hero-inner">
+          <p className="eyebrow">Quotes</p>
+          <h1>
+            What will
+            <br />
+            it cost?
+          </h1>
+          <p className="lede">
+            Tell me about the game and you get a price straight away — no
+            waiting on me to reply. It is an estimate, not an invoice: send it
+            over and I will confirm before anything is booked.
+          </p>
+        </div>
+      </section>
+
+      <QuoteCalculator onBook={book} />
+    </>
+  );
 }

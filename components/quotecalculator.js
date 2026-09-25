@@ -240,12 +240,12 @@ export function QuoteCalculator({ onBook }) {
                   <button
                     type="button"
                     className="btn accent"
-                    onClick={() => onBook?.(quoteMessage(quote))}
+                    onClick={() => onBook?.(quote)}
                   >
                     Book this in
                   </button>
                   <p className="muted small" style={{ marginBottom: 0 }}>
-                    It fills in the message below — nothing to type again.
+                    The details come with you — nothing to type again.
                   </p>
                 </div>
               </div>
