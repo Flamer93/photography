@@ -36,6 +36,9 @@ deployed values.
 | `app/admin/`                     | Dashboard: galleries, orders, revenue            |
 | `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
 | `app/contact/`                   | Contact form, writes to `enquiries`              |
+| `app/auth/action/`               | Firebase account-email link handler              |
+| `app/account/`                   | Verify email, change email or password           |
+| `lib/authactions.js`             | Auth error wording, continue-url helper          |
 | `app/quote/`                     | Shoot quote calculator                           |
 | `components/quotecalculator.js` | The calculator itself, form and result           |
 | `app/api/quote/route.js`         | Prices a shoot, server-side                      |
@@ -399,6 +402,72 @@ firebase apphosting:secrets:set GEMINI_API_KEY
 
 Create the key in AI Studio, on the same project that holds the Gemini
 credit. The secret must exist before a push that references it.
+
+## Account emails and the custom action URL
+
+Firebase sends the account emails -- verify your address, reset your password,
+change your email -- and every one links back to a handler page. By default
+that is a Firebase-branded page on `photography-c16ff.firebaseapp.com`, which
+is a jarring place to land from an email about your own account, on a domain
+the person has never seen.
+
+`app/auth/action/page.js` is that handler, on this site instead.
+
+### Turning it on
+
+Firebase console > Authentication > Templates. For each template (Email
+address verification, Password reset, Email address change), edit it, click
+the pencil next to **customise action URL**, and set:
+
+```
+https://photography-web--photography-c16ff.us-central1.hosted.app/auth/action
+```
+
+Do all three. They are set per template, so doing one leaves the others
+landing on the Firebase page.
+
+### What the page handles
+
+Firebase appends `mode`, `oobCode`, `continueUrl` and `lang` to that URL.
+
+| mode | what happens |
+| ---- | ------------ |
+| `verifyEmail` | `applyActionCode`, then confirms the address |
+| `resetPassword` | `verifyPasswordResetCode`, asks for a new one, `confirmPasswordReset` |
+| `recoverEmail` | undoes an email change and offers a password reset, since an unasked-for change means someone else may know the password |
+| `verifyAndChangeEmail` | completes a change started from the account page |
+
+`checkActionCode` runs before `applyActionCode` wherever the address is worth
+showing -- afterwards the code is spent and tells you nothing.
+
+**Every one of these can legitimately fail.** The code is single use and
+expires, so an old email, a second click, or a link already used are normal
+outcomes rather than edge cases. Each says what to do next instead of
+"invalid action code", and `friendlyAuthError` in `lib/authactions.js` is the
+one place that mapping lives -- the sign-in form uses it too.
+
+`continueUrl` is only followed when it is same-origin. Otherwise a crafted
+link could use this page, on this domain, to bounce someone somewhere else
+right after they typed a password into it.
+
+### Where the emails come from
+
+`/account` (the avatar in the header) sends them: confirm your address, change
+your email, reset your password. The sign-up form sends a verification email
+on account creation, and the sign-in form has a forgotten-password link.
+
+Email changes use `verifyBeforeUpdateEmail`, not `updateEmail`: the new
+address has to prove it exists before it becomes the one that receives
+password resets, so a typo cannot lock someone out of their own account.
+
+Google accounts see none of this. Their email and password belong to Google,
+so offering to change either here would be offering something that cannot
+work.
+
+**Verification is not enforced anywhere.** Someone can buy photos without
+clicking the link. That is deliberate -- a parent buying a photo at 11pm
+should not be blocked by an email they have not read -- but it does mean a
+delivery address can be unconfirmed.
 
 ## Contact form
 

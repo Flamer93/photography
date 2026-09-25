@@ -92,7 +92,7 @@ export function SiteHeader() {
         {ready &&
           (user ? (
             <Link
-              href="/signin"
+              href="/account"
               className="account-chip"
               title={`Signed in as ${user.email || user.uid}`}
               aria-label={`Account — signed in as ${user.email || user.uid}`}

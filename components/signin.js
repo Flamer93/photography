@@ -4,10 +4,13 @@ import { useState } from "react";
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { continueTo, friendlyAuthError } from "@/lib/authactions";
 
 export function SignIn({ heading = "Sign in", blurb }) {
   const [email, setEmail] = useState("");
@@ -15,6 +18,35 @@ export function SignIn({ heading = "Sign in", blurb }) {
   const [mode, setMode] = useState("signin");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sentReset, setSentReset] = useState(false);
+  const [sentVerify, setSentVerify] = useState(false);
+
+  // A new account gets a verification email straight away. It is not enforced
+  // anywhere -- someone can buy photos without clicking it -- but it means
+  // the address is confirmed before there is an order to deliver to it.
+  async function signUp() {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    try {
+      await sendEmailVerification(cred.user, continueTo("/galleries"));
+      setSentVerify(true);
+    } catch (e) {
+      // Not worth failing the sign-up over: they are in, and the account
+      // page can send it again.
+      console.error("Verification email failed:", e);
+    }
+  }
+
+  async function forgotPassword() {
+    if (!email) {
+      setError("Put your email in first and I will send you a reset link.");
+      return;
+    }
+    setSentReset(false);
+    await run(async () => {
+      await sendPasswordResetEmail(auth, email, continueTo("/signin"));
+      setSentReset(true);
+    });
+  }
 
   async function run(fn) {
     setError("");
@@ -22,7 +54,7 @@ export function SignIn({ heading = "Sign in", blurb }) {
     try {
       await fn();
     } catch (e) {
-      setError(friendly(e));
+      setError(friendlyAuthError(e));
     } finally {
       setBusy(false);
     }
@@ -52,7 +84,7 @@ export function SignIn({ heading = "Sign in", blurb }) {
           run(() =>
             mode === "signin"
               ? signInWithEmailAndPassword(auth, email, password)
-              : createUserWithEmailAndPassword(auth, email, password)
+              : signUp()
           );
         }}
       >
@@ -97,6 +129,32 @@ export function SignIn({ heading = "Sign in", blurb }) {
         {mode === "signin" ? "Need an account?" : "Already have an account?"}
       </button>
 
+      {mode === "signin" && (
+        <button
+          type="button"
+          className="link-button"
+          style={{ display: "block", margin: "14px auto 0", fontSize: "0.82rem" }}
+          onClick={forgotPassword}
+          disabled={busy}
+        >
+          Forgotten your password?
+        </button>
+      )}
+
+      {sentReset && (
+        <div className="notice" style={{ marginTop: 16 }}>
+          Reset link sent to {email}. Check your junk folder if it is not there
+          in a minute.
+        </div>
+      )}
+
+      {sentVerify && (
+        <div className="notice" style={{ marginTop: 16 }}>
+          Account created. I have sent {email} a link to confirm the address —
+          worth clicking so your photos reach you.
+        </div>
+      )}
+
       {error && (
         <div className="notice error" style={{ marginTop: 16 }}>
           {error}
@@ -104,18 +162,4 @@ export function SignIn({ heading = "Sign in", blurb }) {
       )}
     </div>
   );
-}
-
-function friendly(e) {
-  const code = e?.code || "";
-  if (code.includes("invalid-credential") || code.includes("wrong-password"))
-    return "That email and password don’t match.";
-  if (code.includes("email-already-in-use"))
-    return "That email already has an account — try signing in.";
-  if (code.includes("weak-password"))
-    return "Passwords need to be at least 6 characters.";
-  if (code.includes("popup-closed")) return "Sign-in window closed.";
-  if (code.includes("unauthorized-domain"))
-    return "This domain isn’t authorized for sign-in yet.";
-  return e?.message || "Something went wrong.";
 }
