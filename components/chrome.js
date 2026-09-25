@@ -10,7 +10,9 @@ const NAV = [
   { href: "/", label: "Home" },
   { href: "/galleries", label: "Galleries" },
   { href: "/teams", label: "For Teams" },
-  { href: "/contact", label: "Contact" },
+  // Not "Contact": that page leads with a price now, and a nav that says
+  // Contact hides it behind a word people read as "form you fill in and wait".
+  { href: "/contact", label: "Get a quote" },
 ];
 
 export const SOCIALS = [
