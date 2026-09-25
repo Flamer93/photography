@@ -171,10 +171,15 @@ export function SiteFooter() {
         <p className="footer-mark">Homick Flicks</p>
         <p className="muted">Sports photography — Midland, Ontario</p>
       </div>
+      {/* Built from NAV rather than repeated by hand -- these had drifted
+          apart once already, leaving the footer saying "Contact" after the
+          header had been renamed. */}
       <div className="footer-links">
-        <Link href="/galleries">Galleries</Link>
-        <Link href="/teams">For Teams</Link>
-        <Link href="/contact">Contact</Link>
+        {NAV.filter((item) => item.href !== "/").map((item) => (
+          <Link key={item.href} href={item.href}>
+            {item.label}
+          </Link>
+        ))}
         {SOCIALS.map((s) => (
           <a
             key={s.label}
