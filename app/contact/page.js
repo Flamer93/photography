@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createEnquiry } from "@/lib/db";
 import { SOCIALS } from "@/components/chrome";
+import { QuoteCalculator } from "@/components/quotecalculator";
 
 const REASONS = [
   "Book me for a game",
@@ -42,6 +43,19 @@ export default function ContactPage() {
     }
     if (carried.get("reason") === "book") setReason(REASONS[0]);
   }, []);
+
+  const formRef = useRef(null);
+
+  // Accepting a quote fills the message in and moves them to it. Filling a
+  // field they cannot see would look like the button did nothing.
+  function useQuote(text) {
+    setMessage(text);
+    setReason(REASONS[0]);
+    setFromQuote(true);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -88,12 +102,17 @@ export default function ContactPage() {
           <p className="lede">
             {fromQuote
               ? "Your quote is in the message below — add your name and email and send it over, and I will confirm the date."
-              : "I cover hockey, soccer, football and basketball around Midland and the rest of Simcoe County. Send me the details and I will get back to you."}
+              : "Work out a price for your game in a few seconds, then send it over. I cover Midland and the rest of Simcoe County."}
           </p>
         </div>
       </section>
 
-      <section className="section">
+      {/* The price comes first. Someone deciding whether to book wants the
+          number before the form, not after it -- and once they have it, the
+          form is already filled in and waiting underneath. */}
+      <QuoteCalculator onBook={useQuote} />
+
+      <section className="section" ref={formRef}>
         <div className="wrap contact-layout">
           {sent ? (
             <div className="panel">

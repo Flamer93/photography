@@ -36,7 +36,8 @@ deployed values.
 | `app/admin/`                     | Dashboard: galleries, orders, revenue            |
 | `app/admin/galleries/[id]/`      | Upload photos, set prices, tags, publish         |
 | `app/contact/`                   | Contact form, writes to `enquiries`              |
-| `app/quote/`                     | Shoot quote calculator                           |
+| `components/quotecalculator.js` | Shoot quote calculator, top of the contact page  |
+| `app/quote/`                     | Redirect to /contact, for old links              |
 | `app/api/quote/route.js`         | Prices a shoot, server-side                      |
 | `lib/pricing.js`                 | Rate card and quote arithmetic                   |
 | `app/api/contact/route.js`       | Emails the admin when a message arrives          |
@@ -323,7 +324,8 @@ say) means editing `cors.json` and running the command again.
 
 ## Shoot quotes
 
-`/quote` prices a shoot from details a buyer types in: arena, sport, roster
+The quote calculator sits at the top of `/contact`, above the message
+form, and prices a shoot from details a buyer types in: arena, sport, roster
 size, photos per player, number of games, plus a team photo and rush
 turnaround. The number appears immediately, itemised, and contact details are
 only asked for once there is a price on screen -- nobody wants to hand over an
