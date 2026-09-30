@@ -139,7 +139,7 @@ export default function GalleriesPage() {
               href={`/galleries/${g.slug}`}
               className="gallery-card"
             >
-              {galleryIsFree(g) && <span className="free-pill">Free gallery</span>}
+              {galleryIsFree(g) && <span className="free-pill">Free</span>}
               {g.coverUrl ? (
                 <img className="gallery-cover" src={g.coverUrl} alt={g.title} />
               ) : (

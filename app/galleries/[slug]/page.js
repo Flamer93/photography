@@ -200,7 +200,7 @@ export default function GalleryPage() {
             {gallery.venue && <span>{gallery.venue}</span>}
             <span>{photos.length} photos</span>
             {free ? (
-              <span className="free-pill inline">Free gallery</span>
+              <span className="free-pill inline">Free</span>
             ) : gallery.defaultPriceCents ? (
               <span>{formatPrice(gallery.defaultPriceCents)} each</span>
             ) : null}

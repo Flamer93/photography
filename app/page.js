@@ -85,7 +85,7 @@ export default function HomePage() {
                   className="photo-card"
                 >
                   {galleryIsFree(g) && (
-                    <span className="free-pill">Free gallery</span>
+                    <span className="free-pill">Free</span>
                   )}
                   {g.coverUrl ? (
                     <img src={g.coverUrl} alt={g.title} loading="lazy" />
