@@ -25,8 +25,8 @@ export default function QuotePage() {
           </h1>
           <p className="lede">
             Tell me about the game and you get a price straight away — no
-            waiting on me to reply. It is an estimate, not an invoice: send it
-            over and I will confirm before anything is booked.
+            waiting on me to reply. It’s an estimate, not an invoice: send it
+            over and I’ll confirm before anything is booked.
           </p>
         </div>
       </section>

@@ -81,7 +81,7 @@ export function JerseyInput({ players, onChange, disabled = false }) {
           onBlur={() => commit(draft)}
           onFocus={() => setPicker(true)}
           maxLength={30}
-          aria-label="Jersey number and colour"
+          aria-label="Jersey number and color"
         />
       </div>
 

@@ -40,7 +40,7 @@ export function QuoteCalculator({ onBook }) {
 
   const [quote, setQuote] = useState(null);
   const [note, setNote] = useState("");
-  const [recognised, setRecognised] = useState(true);
+  const [recognized, setRecognized] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,7 +74,7 @@ export function QuoteCalculator({ onBook }) {
       }
       setQuote(data.quote);
       setNote(data.note || "");
-      setRecognised(data.locationRecognised);
+      setRecognized(data.locationRecognized);
     } catch {
       setError("Couldn’t reach the server. Check your connection and try again.");
     } finally {
@@ -217,24 +217,24 @@ export function QuoteCalculator({ onBook }) {
 
                 {quote.hitMinimum && (
                   <p className="muted small">
-                    That is my minimum for a booking — smaller jobs come out
+                    That’s my minimum for a booking — smaller jobs come out
                     the same.
                   </p>
                 )}
 
                 {note && <p className="muted small">{note}</p>}
 
-                {!recognised && (
+                {!recognized && (
                   <div className="notice" style={{ marginTop: 14 }}>
-                    I could not place that arena, so there is no travel in this
-                    price. If it is a fair drive the real number will be higher
-                    — send it over and I will check.
+                    I couldn’t place that arena, so there’s no travel in this
+                    price. If it’s a fair drive the real number will be higher
+                    — send it over and I’ll check.
                   </div>
                 )}
 
                 <div className="quote-next">
                   <p className="muted small" style={{ marginTop: 0 }}>
-                    Happy with that? Send it over and I will confirm the date —
+                    Happy with that? Send it over and I’ll confirm the date —
                     nothing is booked from this page.
                   </p>
                   <button
@@ -257,8 +257,8 @@ export function QuoteCalculator({ onBook }) {
                 <p className="muted small" style={{ marginTop: 0 }}>
                   The price is built from the size of the roster, how many
                   photos each player wants, and the drive out to you. Fill in
-                  the form and it appears here, itemised, so you can see
-                  exactly what you are paying for.
+                  the form and it appears here, broken down line by line, so
+                  you can see exactly what you’re paying for.
                 </p>
                 <p className="muted small">
                   Nothing is booked and no details are kept until you choose to

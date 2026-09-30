@@ -236,11 +236,11 @@ export default function GalleryPage() {
                 type="search"
                 className="filter-search"
                 style={{ marginBottom: 12 }}
-                placeholder="Jersey number or colour…"
+                placeholder="Jersey number or color…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={onSearchKeyDown}
-                aria-label="Search jersey numbers and colours"
+                aria-label="Search jersey numbers and colors"
               />
 
               {shown.colors.length > 0 && (

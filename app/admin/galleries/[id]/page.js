@@ -872,7 +872,7 @@ function JerseyPanel({
     <div className="panel" style={{ marginBottom: 24 }}>
       <h3 style={{ marginBottom: 12 }}>Jerseys</h3>
       <p className="muted small" style={{ marginTop: 0 }}>
-        Tag each photo with the numbers and colours you can see in it, and
+        Tag each photo with the numbers and colors you can see in it, and
         buyers can filter this gallery down to their own kid instead of
         scrolling the whole game. Type them in under each photo, or let the AI
         take a first pass and correct what it gets wrong.
