@@ -1197,6 +1197,40 @@ body::after {
   color: var(--text);
 }
 
+/* "Free gallery", over the cover.
+   Absolute so it sits on the image rather than pushing the card layout
+   around, and pointer-events off so it never eats the click on a card that
+   is itself a link. */
+.free-pill {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  pointer-events: none;
+}
+
+/* In the gallery hero it sits in a row of text, so it stops being an overlay
+   and behaves like the price it replaces. */
+.free-pill.inline {
+  position: static;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+}
+
+.gallery-card {
+  position: relative;
+}
+
 /* ============================================================= filters == */
 
 .filter-bar {

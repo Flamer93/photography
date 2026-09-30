@@ -93,6 +93,22 @@ A file that is already gone is not treated as an error; a permission error is,
 and surfaces rather than being swallowed, so a rules problem cannot look like
 a successful delete.
 
+### Free galleries
+
+A gallery whose photos are all $0 shows a **Free gallery** pill on its cover,
+and says the same in place of the price on the gallery itself.
+
+Knowing that takes two routes, because the gallery list never loads photos.
+The gallery page has them all, so it checks every one and is simply correct.
+A card has only the gallery document, so it reads `allFree`, which the admin
+writes whenever a price changes -- setting all prices, editing one photo, or
+uploading. `defaultPriceCents` alone would not do: it goes out of step the
+moment one photo is priced differently, and a card promising "Free gallery"
+over photos that cost $15 is a promise made to a buyer.
+
+Galleries from before the flag existed fall back to the default price. An
+empty gallery is never free; it is empty.
+
 ### Preview settings
 
 Each gallery carries `watermark` and `lowRes` flags, toggled on the admin

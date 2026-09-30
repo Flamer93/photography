@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { listPublishedGalleries } from "@/lib/db";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, galleryIsFree } from "@/lib/format";
 
 export default function GalleriesPage() {
   const [galleries, setGalleries] = useState([]);
@@ -139,6 +139,7 @@ export default function GalleriesPage() {
               href={`/galleries/${g.slug}`}
               className="gallery-card"
             >
+              {galleryIsFree(g) && <span className="free-pill">Free gallery</span>}
               {g.coverUrl ? (
                 <img className="gallery-cover" src={g.coverUrl} alt={g.title} />
               ) : (

@@ -24,7 +24,7 @@ import {
   updatePhoto,
 } from "@/lib/db";
 import { buildPreview, readableSize } from "@/lib/images";
-import { formatPrice, parsePriceToCents } from "@/lib/format";
+import { formatPrice, galleryIsFree, parsePriceToCents } from "@/lib/format";
 import { normalizePlayers } from "@/lib/jersey";
 import { useJerseyRun } from "@/components/jerseyrun";
 
@@ -236,6 +236,9 @@ export default function AdminGalleryPage() {
     if (added > 0) {
       await updateGallery(id, {
         photoCount: (gallery.photoCount || 0) + added,
+        // New photos inherit the gallery default, so a gallery that was paid
+        // cannot become free by uploading to it, and vice versa.
+        allFree: (gallery.defaultPriceCents ?? 0) === 0,
         ...(cover !== gallery.coverUrl ? { coverUrl: cover } : {}),
       });
     }
@@ -245,14 +248,30 @@ export default function AdminGalleryPage() {
     await refresh();
   }
 
+  // The gallery list never loads photos, so whether everything is free has
+  // to be recorded on the gallery itself as prices change. Without it a card
+  // could only guess from the default price, and guess wrong the moment one
+  // photo is priced differently.
+  async function syncFreeFlag(rows) {
+    const allFree = galleryIsFree(gallery, rows);
+    if (gallery.allFree === allFree) return;
+    try {
+      await updateGallery(id, { allFree });
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function changePrice(photo, value) {
     const cents = parsePriceToCents(value);
     if (cents === null) return;
     try {
       await updatePhoto(id, photo.id, { priceCents: cents });
-      setPhotos((prev) =>
-        prev.map((p) => (p.id === photo.id ? { ...p, priceCents: cents } : p))
+      const next = photos.map((p) =>
+        p.id === photo.id ? { ...p, priceCents: cents } : p
       );
+      setPhotos(next);
+      await syncFreeFlag(next);
     } catch (e) {
       setError(e.message);
     }
@@ -407,7 +426,7 @@ export default function AdminGalleryPage() {
       await Promise.all(
         photos.map((p) => updatePhoto(id, p.id, { priceCents: cents }))
       );
-      await updateGallery(id, { defaultPriceCents: cents });
+      await updateGallery(id, { defaultPriceCents: cents, allFree: cents === 0 });
       await refresh();
     } catch (e) {
       setError(e.message);

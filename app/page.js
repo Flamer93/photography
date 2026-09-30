@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { galleryIsFree } from "@/lib/format";
 import { HEADLINE_SPORTS } from "@/lib/sports";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
@@ -83,6 +84,9 @@ export default function HomePage() {
                   href={`/galleries/${g.slug}`}
                   className="photo-card"
                 >
+                  {galleryIsFree(g) && (
+                    <span className="free-pill">Free gallery</span>
+                  )}
                   {g.coverUrl ? (
                     <img src={g.coverUrl} alt={g.title} loading="lazy" />
                   ) : (

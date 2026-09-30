@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getGalleryBySlug, listPhotos } from "@/lib/db";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, galleryIsFree } from "@/lib/format";
 import { useCart } from "@/components/providers";
 import {
   collectJerseyFacets,
@@ -34,6 +34,10 @@ export default function GalleryPage() {
   );
 
   const filtering = numbers.length > 0 || colors.length > 0;
+
+  // Every photo is loaded here, so this is the certain answer rather than the
+  // flag the cards have to rely on.
+  const free = galleryIsFree(gallery, photos);
 
   // The search box narrows the chips rather than the photos. A big game can
   // carry forty numbers, and hunting for one in a wall of chips is the thing
@@ -195,7 +199,9 @@ export default function GalleryPage() {
           <div className="hero-meta">
             {gallery.venue && <span>{gallery.venue}</span>}
             <span>{photos.length} photos</span>
-            {gallery.defaultPriceCents ? (
+            {free ? (
+              <span className="free-pill inline">Free gallery</span>
+            ) : gallery.defaultPriceCents ? (
               <span>{formatPrice(gallery.defaultPriceCents)} each</span>
             ) : null}
           </div>
