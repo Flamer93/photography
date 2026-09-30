@@ -124,7 +124,7 @@ export default function OrdersPage() {
             have bought.
           </h1>
           <p className="lede">
-            Every order on this account, and where each one has got to.
+            Every order on this account.
           </p>
         </div>
       </section>
