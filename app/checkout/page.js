@@ -101,8 +101,19 @@ export default function CheckoutPage() {
             </p>
           </div>
 
+          <p className="muted small">
+            You can check where this order has got to any time on{" "}
+            <Link href="/orders" style={{ color: "var(--accent)" }}>
+              your orders
+            </Link>
+            .
+          </p>
+
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/galleries" className="btn accent">
+            <Link href="/orders" className="btn accent">
+              Track this order
+            </Link>
+            <Link href="/galleries" className="btn ghost">
               Back to galleries
             </Link>
             <Link href="/contact" className="btn ghost">

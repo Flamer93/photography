@@ -46,6 +46,7 @@ deployed values.
 | `app/api/contact/route.js`       | Emails the admin when a message arrives          |
 | `app/api/deliver/route.js`       | Emails a buyer their files once paid             |
 | `app/download/[orderId]/`        | Buyer download page for larger orders            |
+| `app/orders/`                    | Buyer order history and status                   |
 | `components/providers.js`        | Auth and cart context                            |
 | `lib/images.js`                  | Browser-side downscale + watermark               |
 | `lib/db.js`                      | Firestore reads and writes                       |
@@ -484,6 +485,39 @@ work.
 clicking the link. That is deliberate -- a parent buying a photo at 11pm
 should not be blocked by an email they have not read -- but it does mean a
 delivery address can be unconfirmed.
+
+## Buyer order history
+
+`/orders` lists every order on the signed-in account and where each one has
+got to. The checkout success screen links to it -- "Track this order" -- which
+is the moment someone most wants to know they will hear back.
+
+Three states, phrased as the buyer sees them rather than as the database
+stores them:
+
+| what is true | what it says |
+| ------------ | ------------ |
+| `status: pending` | Waiting on payment, with the e-Transfer reference repeated |
+| `status: paid`, no `filesSentAt` | Paid -- photos on their way |
+| `status: paid` + `filesSentAt` | Sent, with the date |
+
+Anything unexpected -- no status, or files somehow sent on an unpaid order --
+falls to "waiting on payment", because claiming something was sent when it may
+not have been is the worse mistake.
+
+The security rules already let someone read their own orders and no one
+else's, so there is nothing extra to enforce here. The list query needs the
+`buyerUid` + `createdAt` composite index, which already exists in
+`firestore.indexes.json`.
+
+Orders that were sent a download page get an **Open my photos** link.
+Existence is checked per order rather than assumed: small orders were emailed
+as direct links and have no download page, and sending someone to a page that
+says "nothing here" is worse than not offering the link.
+
+**An order placed while signed out, or on a different account, will not
+appear.** The empty state says so and points at the contact page, rather than
+leaving someone to conclude their order vanished.
 
 ## Contact form
 

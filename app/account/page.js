@@ -188,6 +188,10 @@ export default function AccountPage() {
         )}
 
         <p className="muted small" style={{ marginTop: 28 }}>
+          <Link href="/orders" style={{ color: "var(--accent)" }}>
+            Your orders
+          </Link>
+          {" — "}
           <Link href="/galleries" style={{ color: "var(--accent)" }}>
             Back to the galleries
           </Link>
