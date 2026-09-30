@@ -58,6 +58,18 @@ export function SiteHeader() {
             {item.label}
           </Link>
         ))}
+        {/* Only once signed in. Orders are tied to an account, so for a
+            visitor who has never bought anything this is a link to a sign-in
+            prompt -- and most people looking at a gallery are exactly that. */}
+        {user && (
+          <Link
+            href="/orders"
+            className={isActive("/orders") ? "is-active" : ""}
+            onClick={() => setOpen(false)}
+          >
+            My orders
+          </Link>
+        )}
         {isAdmin && (
           <Link
             href="/admin"
